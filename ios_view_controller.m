@@ -34,7 +34,7 @@
         (NSString*)kIOSurfaceHeight: @512,
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(512 * 4),
-        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32BGRA)
+        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32RGBA) // 使用RGBA格式，更兼容OpenGL ES
     };
     
     // 创建IOSurface
@@ -44,7 +44,7 @@
         return NO;
     }
     
-    NSLog(@"Successfully created IOSurface for rendering");
+    NSLog(@"Successfully created IOSurface for rendering with format: %u", (unsigned int)IOSurfaceGetPixelFormat(_ioSurface));
     return YES;
 }
 

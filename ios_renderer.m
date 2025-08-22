@@ -93,7 +93,7 @@ static const float triangleVertices[] = {
         (NSString*)kIOSurfaceHeight: @(_renderHeight),
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(_renderWidth * 4),
-        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32BGRA)
+        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32RGBA) // 使用RGBA格式，更兼容OpenGL ES
     };
     
     // 创建IOSurface
@@ -103,6 +103,7 @@ static const float triangleVertices[] = {
         return NO;
     }
     
+    NSLog(@"Created IOSurface with format: %u", (unsigned int)IOSurfaceGetPixelFormat(_ioSurface));
     return YES;
 }
 
@@ -190,17 +191,39 @@ static const float triangleVertices[] = {
         return NO;
     }
     
+    // 获取IOSurface的像素格式
+    OSType pixelFormat = IOSurfaceGetPixelFormat(_ioSurface);
+    NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
+    
+    // 根据IOSurface的像素格式选择合适的OpenGL ES格式
+    GLenum glFormat = GL_RGBA;
+    GLenum glType = GL_UNSIGNED_BYTE;
+    
+    if (pixelFormat == kCVPixelFormatType_32BGRA) {
+        glFormat = GL_BGRA;
+        glType = GL_UNSIGNED_BYTE;
+    } else if (pixelFormat == kCVPixelFormatType_32ARGB) {
+        glFormat = GL_BGRA; // OpenGL ES 2.0 不支持 GL_ARGB，使用 BGRA
+        glType = GL_UNSIGNED_BYTE;
+    } else if (pixelFormat == kCVPixelFormatType_32RGBA) {
+        glFormat = GL_RGBA;
+        glType = GL_UNSIGNED_BYTE;
+    } else {
+        NSLog(@"Unsupported pixel format: %u", (unsigned int)pixelFormat);
+        return NO;
+    }
+    
     // 关键优化：使用Core Video纹理缓存直接从IOSurface创建OpenGL ES纹理
     CVReturn result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
                                                                    _textureCache,
                                                                    _ioSurface,
                                                                    NULL,
                                                                    GL_TEXTURE_2D,
-                                                                   GL_RGBA,
+                                                                   GL_RGBA, // 内部格式
                                                                    (GLsizei)_renderWidth,
                                                                    (GLsizei)_renderHeight,
-                                                                   GL_BGRA,
-                                                                   GL_UNSIGNED_BYTE,
+                                                                   glFormat, // 外部格式
+                                                                   glType,
                                                                    0,
                                                                    &_renderTexture);
     
