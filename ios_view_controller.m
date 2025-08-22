@@ -1,5 +1,5 @@
 #import "ios_view_controller.h"
-#import <IOSurface/IOSurface.h>
+#import <IOSurface/IOSurfaceRef.h>
 
 @implementation IOSViewControllerDirect
 
