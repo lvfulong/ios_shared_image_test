@@ -1,6 +1,11 @@
 #pragma once
 
+#define GLES_SILENCE_DEPRECATION 1
+
 #import <UIKit/UIKit.h>
+#import <OpenGLES/EAGL.h>
+#import <OpenGLES/EAGLDrawable.h>
+#import <CoreVideo/CoreVideo.h>
 #ifdef __APPLE__
 #import <IOSurface/IOSurfaceRef.h>
 #endif
