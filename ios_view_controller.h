@@ -1,12 +1,14 @@
 #pragma once
 
 #import <UIKit/UIKit.h>
-#import <MetalKit/MetalKit.h>
-#import "ios_main_renderer_direct.h"
+#ifdef __APPLE__
+#import <IOSurface/IOSurfaceRef.h>
+#endif
+#import "ios_main_renderer.h"
 
 @interface IOSViewControllerDirect : UIViewController
 
-@property (nonatomic, strong) MTKView* metalView;
+@property (nonatomic, assign) IOSurfaceRef ioSurface;
 @property (nonatomic, strong) IOSMainRenderer* mainRenderer;
 
 @end

@@ -1,4 +1,5 @@
 #import "ios_view_controller.h"
+#import <IOSurface/IOSurface.h>
 
 @implementation IOSViewControllerDirect
 
@@ -8,13 +9,14 @@
     // 设置视图背景色
     self.view.backgroundColor = [UIColor blackColor];
     
-    // 创建Metal视图
-    _metalView = [[MTKView alloc] initWithFrame:self.view.bounds];
-    _metalView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    [self.view addSubview:_metalView];
+    // 创建IOSurface用于渲染
+    if (![self createIOSurface]) {
+        NSLog(@"Failed to create IOSurface");
+        return;
+    }
     
     // 创建主渲染器
-    _mainRenderer = [[IOSMainRenderer alloc] initWithMetalView:_metalView];
+    _mainRenderer = [[IOSMainRenderer alloc] initWithSurface:_ioSurface];
     
     // 初始化渲染器
     if (![_mainRenderer initialize]) {
@@ -22,7 +24,28 @@
         return;
     }
     
-    NSLog(@"Direct rendering view controller loaded successfully");
+    NSLog(@"IOSurface-based rendering view controller loaded successfully");
+}
+
+- (BOOL)createIOSurface {
+    // 创建IOSurface属性
+    NSDictionary* surfaceProperties = @{
+        (NSString*)kIOSurfaceWidth: @512,
+        (NSString*)kIOSurfaceHeight: @512,
+        (NSString*)kIOSurfaceBytesPerElement: @4,
+        (NSString*)kIOSurfaceBytesPerRow: @(512 * 4),
+        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32BGRA)
+    };
+    
+    // 创建IOSurface
+    _ioSurface = IOSurfaceCreate((__bridge CFDictionaryRef)surfaceProperties);
+    if (!_ioSurface) {
+        NSLog(@"Failed to create IOSurface");
+        return NO;
+    }
+    
+    NSLog(@"Successfully created IOSurface for rendering");
+    return YES;
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -30,7 +53,7 @@
     
     // 开始渲染
     [_mainRenderer startRendering];
-    NSLog(@"Started direct rendering in view controller");
+    NSLog(@"Started IOSurface-based rendering in view controller");
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -38,7 +61,14 @@
     
     // 停止渲染
     [_mainRenderer stopRendering];
-    NSLog(@"Stopped direct rendering in view controller");
+    NSLog(@"Stopped IOSurface-based rendering in view controller");
+}
+
+- (void)dealloc {
+    if (_ioSurface) {
+        CFRelease(_ioSurface);
+        _ioSurface = NULL;
+    }
 }
 
 @end
