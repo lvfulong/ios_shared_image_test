@@ -190,17 +190,6 @@ static const float triangleVertices[] = {
     OSType pixelFormat = IOSurfaceGetPixelFormat(_ioSurface);
     NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
     
-    // 创建渲染纹理
-    GLuint renderTexture;
-    glGenTextures(1, &renderTexture);
-    glBindTexture(GL_TEXTURE_2D, renderTexture);
-    
-    // 设置纹理参数
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    
     // 关键：使用Metal直接从IOSurface创建纹理（真正的零拷贝）
     // 这是Chromium中使用的方法
     MTLTextureDescriptor* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
@@ -238,6 +227,17 @@ static const float triangleVertices[] = {
         // 如果Core Video失败，尝试使用glTexImage2D（虽然不是零拷贝，但至少能工作）
         NSLog(@"Falling back to glTexImage2D method");
         
+        // 创建渲染纹理
+        GLuint renderTexture;
+        glGenTextures(1, &renderTexture);
+        glBindTexture(GL_TEXTURE_2D, renderTexture);
+        
+        // 设置纹理参数
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        
         // 锁定IOSurface以获取像素数据
         IOSurfaceLock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
         void* pixelData = IOSurfaceGetBaseAddress(_ioSurface);
@@ -249,15 +249,18 @@ static const float triangleVertices[] = {
         // 解锁IOSurface
         IOSurfaceUnlock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
         
+        // 将纹理附加到帧缓冲区
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
+        
         NSLog(@"Created texture using glTexImage2D fallback");
     } else {
         // 获取OpenGL ES纹理名称
         GLuint textureName = CVOpenGLESTextureGetName(_renderTexture);
         NSLog(@"Successfully created zero-copy texture: %u", textureName);
+        
+        // 将零拷贝纹理附加到帧缓冲区
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureName, 0);
     }
-    
-    // 将纹理附加到帧缓冲区
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
     
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         NSLog(@"Framebuffer is not complete");
