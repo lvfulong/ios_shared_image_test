@@ -206,6 +206,31 @@ static const float quadVertices[] = {
     }
 }
 
+- (void)displayRenderResult {
+    // 检查是否有新的渲染结果
+    if ([_renderer hasNewRenderResult]) {
+        NSLog(@"Displaying new render result");
+        
+        // 获取当前的IOSurface
+        IOSurfaceRef ioSurface = [_renderer getCurrentSurface];
+        if (ioSurface) {
+            // 更新纹理管理器
+            if ([_textureManager updateTextureFromIOSurface:ioSurface]) {
+                NSLog(@"Successfully updated texture from IOSurface");
+                
+                // 渲染到屏幕
+                [self renderToScreen];
+            }
+            CFRelease(ioSurface);
+        }
+    }
+}
+
+- (void)renderToScreen {
+    // 简化版本：只更新纹理，实际的显示由CALayer处理
+    NSLog(@"Texture updated, ready for display");
+}
+
 - (void)dealloc {
     if (_surfaceRef) {
         CFRelease(_surfaceRef);

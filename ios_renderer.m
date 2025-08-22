@@ -1,6 +1,7 @@
 #import "ios_renderer.h"
 #import <OpenGLES/EAGL.h>
 #import <OpenGLES/EAGLDrawable.h>
+#import <CoreVideo/CoreVideo.h>
 
 // OpenGL ES 着色器源码
 static const char* vertexShaderSource = R"(
@@ -185,44 +186,37 @@ static const float triangleVertices[] = {
     glGenFramebuffers(1, &_glFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, _glFBO);
     
-    // 创建渲染纹理
-    GLuint renderTexture;
-    glGenTextures(1, &renderTexture);
-    glBindTexture(GL_TEXTURE_2D, renderTexture);
+    // 使用Core Video纹理缓存直接从IOSurface创建OpenGL ES纹理
+    CVReturn result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
+                                                                   _textureCache,
+                                                                   _ioSurface,
+                                                                   NULL,
+                                                                   GL_TEXTURE_2D,
+                                                                   GL_RGBA,
+                                                                   (GLsizei)_renderWidth,
+                                                                   (GLsizei)_renderHeight,
+                                                                   GL_RGBA,
+                                                                   GL_UNSIGNED_BYTE,
+                                                                   0,
+                                                                   &_renderTexture);
     
-    // 设置纹理参数
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    if (result != kCVReturnSuccess) {
+        NSLog(@"Failed to create texture from IOSurface: %d", result);
+        return NO;
+    }
     
-    // 获取IOSurface的像素格式
-    OSType pixelFormat = IOSurfaceGetPixelFormat(_ioSurface);
-    NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
-    
-    // 锁定IOSurface以获取像素数据
-    IOSurfaceLock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
-    
-    // 获取IOSurface的像素数据
-    void* pixelData = IOSurfaceGetBaseAddress(_ioSurface);
-    size_t bytesPerRow = IOSurfaceGetBytesPerRow(_ioSurface);
-    
-    // 创建纹理
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)_renderWidth, (GLsizei)_renderHeight, 
-                 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelData);
-    
-    // 解锁IOSurface
-    IOSurfaceUnlock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
+    // 获取OpenGL ES纹理名称
+    GLuint textureName = CVOpenGLESTextureGetName(_renderTexture);
     
     // 将纹理附加到帧缓冲区
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureName, 0);
     
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         NSLog(@"Framebuffer is not complete");
         return NO;
     }
     
-    NSLog(@"Successfully created direct IOSurface framebuffer using glTexImage2D");
+    NSLog(@"Successfully created zero-copy IOSurface framebuffer");
     return YES;
 }
 
@@ -291,14 +285,14 @@ static const float triangleVertices[] = {
 }
 
 - (void)renderTriangle {
-    // 绑定帧缓冲区
+    // 绑定帧缓冲区（直接渲染到IOSurface）
     glBindFramebuffer(GL_FRAMEBUFFER, _glFBO);
     
     // 设置视口
     glViewport(0, 0, (GLsizei)_renderWidth, (GLsizei)_renderHeight);
     
-    // 清除颜色缓冲区
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    // 清除颜色缓冲区 - 使用更明显的颜色
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f); // 红色背景
     glClear(GL_COLOR_BUFFER_BIT);
     
     // 使用着色器程序
@@ -322,8 +316,8 @@ static const float triangleVertices[] = {
     // 确保渲染完成
     glFinish();
     
-    // 关键优化：数据已经直接渲染到IOSurface中，无需额外拷贝！
-    // 这就是零拷贝渲染的核心优势
+    // 零拷贝：数据已经直接渲染到IOSurface中！
+    NSLog(@"Zero-copy rendered triangle to IOSurface");
 }
 
 - (IOSurfaceRef)getCurrentSurface {
@@ -343,6 +337,8 @@ static const float triangleVertices[] = {
     return hasResult;
 }
 
+
+
 - (BOOL)createRenderThreadResources {
     // 编译着色器
     if (![self compileShaders]) {
@@ -354,6 +350,12 @@ static const float triangleVertices[] = {
     glGenBuffers(1, &_glVBO);
     glBindBuffer(GL_ARRAY_BUFFER, _glVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
+    
+    // 创建纹理缓存
+    if (![self createTextureCache]) {
+        NSLog(@"Failed to create texture cache in render thread");
+        return NO;
+    }
     
     // 创建直接渲染到IOSurface的帧缓冲区
     if (![self createDirectIOSurfaceFramebuffer]) {
@@ -379,6 +381,17 @@ static const float triangleVertices[] = {
     if (_glFBO) {
         glDeleteFramebuffers(1, &_glFBO);
         _glFBO = 0;
+    }
+    
+    // 清理纹理缓存
+    if (_textureCache) {
+        CFRelease(_textureCache);
+        _textureCache = NULL;
+    }
+    
+    if (_renderTexture) {
+        CFRelease(_renderTexture);
+        _renderTexture = NULL;
     }
 }
 

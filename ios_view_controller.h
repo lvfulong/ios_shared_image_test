@@ -10,5 +10,7 @@
 
 @property (nonatomic, assign) IOSurfaceRef ioSurface;
 @property (nonatomic, strong) IOSMainRenderer* mainRenderer;
+@property (nonatomic, strong) CADisplayLink* displayLink;
+@property (nonatomic, strong) CALayer* displayLayer;
 
 @end
