@@ -146,13 +146,13 @@ static const unsigned short quadIndices[] = {
 }
 
 - (BOOL)createIOSurface {
-    // 创建IOSurface属性
+    // 创建IOSurface属性 - 使用RGBA格式避免BGRA兼容性问题
     NSDictionary* surfaceProperties = @{
         (NSString*)kIOSurfaceWidth: @512,
         (NSString*)kIOSurfaceHeight: @512,
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(512 * 4),
-        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32RGBA) // 使用RGBA格式，与OpenGL ES兼容
+        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32RGBA) // 使用RGBA格式，确保与OpenGL ES兼容
     };
     
     // 创建IOSurface
@@ -162,7 +162,11 @@ static const unsigned short quadIndices[] = {
         return NO;
     }
     
-    NSLog(@"Successfully created IOSurface for rendering with format: %u", (unsigned int)IOSurfaceGetPixelFormat(_ioSurface));
+    OSType pixelFormat = IOSurfaceGetPixelFormat(_ioSurface);
+    NSLog(@"Successfully created IOSurface for rendering with format: %u (%@)", 
+          (unsigned int)pixelFormat,
+          pixelFormat == kCVPixelFormatType_32RGBA ? @"RGBA" : 
+          pixelFormat == kCVPixelFormatType_32BGRA ? @"BGRA" : @"Unknown");
     return YES;
 }
 
@@ -346,13 +350,26 @@ static const unsigned short quadIndices[] = {
 
 // 方式1: 使用CVOpenGLESTextureCache进行零拷贝
 - (BOOL)displayUsingCVOpenGLESTextureCache:(IOSurfaceRef)surface pixelFormat:(OSType)pixelFormat {
+    NSLog(@"CVOpenGLESTextureCache: Attempting zero-copy texture creation");
+    
+    // 检查OpenGL ES扩展支持
+    const char* extensions = (const char*)glGetString(GL_EXTENSIONS);
+    BOOL supportsBGRA = extensions && strstr(extensions, "GL_EXT_bgra") != NULL;
+    NSLog(@"CVOpenGLESTextureCache: BGRA extension support: %@", supportsBGRA ? @"YES" : @"NO");
+    
     // 根据像素格式选择合适的OpenGL ES格式
     GLenum glFormat = GL_RGBA;
     GLenum glType = GL_UNSIGNED_BYTE;
     
     if (pixelFormat == 1380401729) { // kCVPixelFormatType_32BGRA
-        glFormat = GL_BGRA_EXT;
-        NSLog(@"CVOpenGLESTextureCache: Using GL_BGRA_EXT format for BGRA pixel format");
+        if (supportsBGRA) {
+            glFormat = GL_BGRA_EXT;
+            NSLog(@"CVOpenGLESTextureCache: Using GL_BGRA_EXT format for BGRA pixel format");
+        } else {
+            // iOS通常不支持GL_BGRA_EXT，使用GL_RGBA并处理格式转换
+            glFormat = GL_RGBA;
+            NSLog(@"CVOpenGLESTextureCache: BGRA not supported, using GL_RGBA with format conversion");
+        }
     } else if (pixelFormat == 1111970369) { // kCVPixelFormatType_32RGBA
         glFormat = GL_RGBA;
         NSLog(@"CVOpenGLESTextureCache: Using GL_RGBA format for RGBA pixel format");
@@ -361,7 +378,7 @@ static const unsigned short quadIndices[] = {
         glFormat = GL_RGBA;
     }
     
-    // 使用CVOpenGLESTextureCache创建零拷贝纹理
+    // 尝试使用CVOpenGLESTextureCache创建零拷贝纹理
     CVOpenGLESTextureRef textureRef = NULL;
     CVReturn result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
                                                                    _displayTextureCache,
@@ -398,10 +415,58 @@ static const unsigned short quadIndices[] = {
         // 释放纹理引用
         CFRelease(textureRef);
         
-        NSLog(@"Successfully displayed using CVOpenGLESTextureCache zero-copy method");
+        NSLog(@"CVOpenGLESTextureCache: Successfully displayed using zero-copy method");
         return YES;
     } else {
-        NSLog(@"CVOpenGLESTextureCache failed: %d (pixel format: %u)", result, (unsigned int)pixelFormat);
+        NSLog(@"CVOpenGLESTextureCache: Failed with error %d (pixel format: %u)", result, (unsigned int)pixelFormat);
+        
+        // 如果BGRA失败，尝试使用RGBA格式
+        if (pixelFormat == 1380401729 && glFormat == GL_BGRA_EXT) {
+            NSLog(@"CVOpenGLESTextureCache: Retrying with GL_RGBA format for BGRA pixel format");
+            
+            // 重新尝试使用RGBA格式
+            result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
+                                                                 _displayTextureCache,
+                                                                 surface,
+                                                                 NULL,
+                                                                 GL_TEXTURE_2D,
+                                                                 GL_RGBA,
+                                                                 (GLsizei)IOSurfaceGetWidth(surface),
+                                                                 (GLsizei)IOSurfaceGetHeight(surface),
+                                                                 GL_RGBA,
+                                                                 GL_UNSIGNED_BYTE,
+                                                                 0,
+                                                                 &textureRef);
+            
+            if (result == kCVReturnSuccess) {
+                // 获取纹理名称
+                GLuint textureName = CVOpenGLESTextureGetName(textureRef);
+                
+                // 绑定纹理
+                glBindTexture(GL_TEXTURE_2D, textureName);
+                
+                // 设置纹理参数
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                
+                // 绘制全屏四边形来显示纹理
+                [self drawFullscreenQuad];
+                
+                // 呈现到屏幕
+                [_displayContext presentRenderbuffer:GL_RENDERBUFFER];
+                
+                // 释放纹理引用
+                CFRelease(textureRef);
+                
+                NSLog(@"CVOpenGLESTextureCache: Successfully displayed using RGBA fallback");
+                return YES;
+            } else {
+                NSLog(@"CVOpenGLESTextureCache: RGBA fallback also failed with error %d", result);
+            }
+        }
+        
         return NO;
     }
 }
@@ -436,19 +501,39 @@ static const unsigned short quadIndices[] = {
     
     // 方法1: 尝试使用glTexImage2D + NULL指针 (需要特定扩展支持)
     if (pixelFormat == 1380401729) { // kCVPixelFormatType_32BGRA
-        NSLog(@"OpenGL ES Extension: Attempting BGRA format with NULL pointer");
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA_EXT, 
-                   (GLsizei)IOSurfaceGetWidth(surface), 
-                   (GLsizei)IOSurfaceGetHeight(surface),
-                   0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, NULL);
+        // 检查是否支持BGRA扩展
+        BOOL supportsBGRA = strstr(extensions, "GL_EXT_bgra") != NULL;
         
-        // 检查是否有OpenGL错误
-        GLenum error = glGetError();
-        if (error == GL_NO_ERROR) {
-            NSLog(@"OpenGL ES Extension: Successfully created BGRA texture with NULL pointer");
-            success = YES;
+        if (supportsBGRA) {
+            NSLog(@"OpenGL ES Extension: Attempting BGRA format with NULL pointer");
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA_EXT, 
+                       (GLsizei)IOSurfaceGetWidth(surface), 
+                       (GLsizei)IOSurfaceGetHeight(surface),
+                       0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, NULL);
+            
+            // 检查是否有OpenGL错误
+            GLenum error = glGetError();
+            if (error == GL_NO_ERROR) {
+                NSLog(@"OpenGL ES Extension: Successfully created BGRA texture with NULL pointer");
+                success = YES;
+            } else {
+                NSLog(@"OpenGL ES Extension: Failed to create BGRA texture with NULL pointer, error: %d", error);
+            }
         } else {
-            NSLog(@"OpenGL ES Extension: Failed to create BGRA texture with NULL pointer, error: %d", error);
+            NSLog(@"OpenGL ES Extension: BGRA not supported, trying RGBA format");
+            // 尝试使用RGBA格式
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 
+                       (GLsizei)IOSurfaceGetWidth(surface), 
+                       (GLsizei)IOSurfaceGetHeight(surface),
+                       0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+            
+            GLenum error = glGetError();
+            if (error == GL_NO_ERROR) {
+                NSLog(@"OpenGL ES Extension: Successfully created RGBA texture with NULL pointer");
+                success = YES;
+            } else {
+                NSLog(@"OpenGL ES Extension: Failed to create RGBA texture with NULL pointer, error: %d", error);
+            }
         }
     } else if (pixelFormat == 1111970369) { // kCVPixelFormatType_32RGBA
         NSLog(@"OpenGL ES Extension: Attempting RGBA format with NULL pointer");
