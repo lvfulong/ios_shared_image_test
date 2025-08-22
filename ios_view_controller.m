@@ -152,7 +152,7 @@ static const unsigned short quadIndices[] = {
         (NSString*)kIOSurfaceHeight: @512,
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(512 * 4),
-        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32RGBA) // 使用RGBA格式，确保与OpenGL ES兼容
+        (NSString*)kIOSurfacePixelFormat: @(1111970369) // 使用kCVPixelFormatType_32RGBA，确保与OpenGL ES兼容
     };
     
     // 创建IOSurface
@@ -165,8 +165,8 @@ static const unsigned short quadIndices[] = {
     OSType pixelFormat = IOSurfaceGetPixelFormat(_ioSurface);
     NSLog(@"Successfully created IOSurface for rendering with format: %u (%@)", 
           (unsigned int)pixelFormat,
-          pixelFormat == kCVPixelFormatType_32RGBA ? @"RGBA" : 
-          pixelFormat == kCVPixelFormatType_32BGRA ? @"BGRA" : @"Unknown");
+          pixelFormat == 1111970369 ? @"RGBA" : 
+          pixelFormat == 1380401729 ? @"BGRA" : @"Unknown");
     return YES;
 }
 
