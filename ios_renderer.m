@@ -190,35 +190,38 @@ static const float triangleVertices[] = {
     OSType pixelFormat = IOSurfaceGetPixelFormat(_ioSurface);
     NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
     
-    // 根据IOSurface的像素格式选择合适的OpenGL ES格式
-    GLenum glFormat, glType;
-    if (pixelFormat == kCVPixelFormatType_32RGBA) {
-        glFormat = GL_RGBA;
-        glType = GL_UNSIGNED_BYTE;
-    } else if (pixelFormat == kCVPixelFormatType_32BGRA) {
-        glFormat = GL_BGRA;
-        glType = GL_UNSIGNED_BYTE;
-    } else {
-        NSLog(@"Unsupported pixel format: %u", (unsigned int)pixelFormat);
+    // 使用Metal直接从IOSurface创建纹理（真正的零拷贝）
+    MTLTextureDescriptor* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+                                                                                                 width:_renderWidth
+                                                                                                height:_renderHeight
+                                                                                             mipmapped:NO];
+    textureDescriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
+    
+    // 关键：直接从IOSurface创建Metal纹理，零拷贝
+    id<MTLTexture> metalTexture = [_metalDevice newTextureWithDescriptor:textureDescriptor
+                                                              iosurface:_ioSurface
+                                                                  plane:0];
+    if (!metalTexture) {
+        NSLog(@"Failed to create Metal texture from IOSurface");
         return NO;
     }
     
-    // 使用Core Video纹理缓存直接从IOSurface创建OpenGL ES纹理
+    // 使用Core Video纹理缓存从Metal纹理创建OpenGL ES纹理
     CVReturn result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
                                                                    _textureCache,
                                                                    _ioSurface,
                                                                    NULL,
                                                                    GL_TEXTURE_2D,
-                                                                   glFormat, // 内部格式
+                                                                   GL_BGRA,
                                                                    (GLsizei)_renderWidth,
                                                                    (GLsizei)_renderHeight,
-                                                                   glFormat, // 外部格式
-                                                                   glType,
+                                                                   GL_BGRA,
+                                                                   GL_UNSIGNED_BYTE,
                                                                    0,
                                                                    &_renderTexture);
     
     if (result != kCVReturnSuccess) {
-        NSLog(@"Failed to create texture from IOSurface: %d", result);
+        NSLog(@"Failed to create OpenGL ES texture from IOSurface: %d", result);
         return NO;
     }
     
