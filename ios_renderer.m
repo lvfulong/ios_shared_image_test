@@ -53,15 +53,6 @@ static const float triangleVertices[] = {
 }
 
 - (BOOL)initialize {
-    // 确保在主线程中初始化
-    if (![NSThread isMainThread]) {
-        __block BOOL result = NO;
-        dispatch_sync(dispatch_get_main_queue(), ^{
-            result = [self initialize];
-        });
-        return result;
-    }
-    
     // 初始化Metal设备
     if (![self initializeMetal]) {
         NSLog(@"Failed to initialize Metal");
@@ -71,12 +62,6 @@ static const float triangleVertices[] = {
     // 创建IOSurface
     if (![self createIOSurface]) {
         NSLog(@"Failed to create IOSurface");
-        return NO;
-    }
-    
-    // 初始化OpenGL ES上下文
-    if (![self initializeOpenGLES]) {
-        NSLog(@"Failed to initialize OpenGL ES");
         return NO;
     }
     
@@ -275,30 +260,16 @@ static const float triangleVertices[] = {
     
     _isRendering = YES;
     
-    // 确保在主线程中创建共享上下文
-    if ([NSThread isMainThread]) {
-        [self startRenderThread];
-    } else {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self startRenderThread];
-        });
-    }
+    // 直接启动渲染线程
+    [self startRenderThread];
     
     NSLog(@"iOS direct rendering started");
 }
 
 - (void)startRenderThread {
-    // 创建共享上下文
-    EAGLContext* sharedContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2 
-                                                       sharegroup:_glContext.sharegroup];
-    if (!sharedContext) {
-        NSLog(@"Failed to create shared EAGL context");
-        return;
-    }
-    
     // 在后台线程中启动渲染
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        [self renderLoopWithContext:sharedContext];
+        [self renderLoop];
     });
 }
 
@@ -307,10 +278,23 @@ static const float triangleVertices[] = {
     NSLog(@"iOS direct rendering stopped");
 }
 
-- (void)renderLoopWithContext:(EAGLContext*)context {
-    // 确保在当前线程中设置EAGL上下文
-    if (![EAGLContext setCurrentContext:context]) {
+- (void)renderLoop {
+    // 在渲染线程中创建独立的EAGL上下文
+    EAGLContext* renderContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+    if (!renderContext) {
+        NSLog(@"Failed to create render EAGL context");
+        return;
+    }
+    
+    // 设置当前上下文
+    if (![EAGLContext setCurrentContext:renderContext]) {
         NSLog(@"Failed to set current EAGL context in render thread");
+        return;
+    }
+    
+    // 在渲染线程中重新创建OpenGL ES资源
+    if (![self createRenderThreadResources]) {
+        NSLog(@"Failed to create render thread resources");
         return;
     }
     
@@ -327,6 +311,9 @@ static const float triangleVertices[] = {
             [NSThread sleepForTimeInterval:1.0/60.0]; // ~60 FPS
         }
     }
+    
+    // 清理渲染线程资源
+    [self cleanupRenderThreadResources];
     
     // 清理上下文
     [EAGLContext setCurrentContext:nil];
@@ -385,11 +372,68 @@ static const float triangleVertices[] = {
     return hasResult;
 }
 
+- (BOOL)createRenderThreadResources {
+    // 编译着色器
+    if (![self compileShaders]) {
+        NSLog(@"Failed to compile shaders in render thread");
+        return NO;
+    }
+    
+    // 创建顶点缓冲区
+    glGenBuffers(1, &_glVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, _glVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
+    
+    // 创建Core Video纹理缓存
+    if (![self createTextureCache]) {
+        NSLog(@"Failed to create texture cache in render thread");
+        return NO;
+    }
+    
+    // 创建直接渲染到IOSurface的帧缓冲区
+    if (![self createDirectIOSurfaceFramebuffer]) {
+        NSLog(@"Failed to create direct IOSurface framebuffer in render thread");
+        return NO;
+    }
+    
+    return YES;
+}
+
+- (void)cleanupRenderThreadResources {
+    // 清理OpenGL ES资源
+    if (_glProgram) {
+        glDeleteProgram(_glProgram);
+        _glProgram = 0;
+    }
+    
+    if (_glVBO) {
+        glDeleteBuffers(1, &_glVBO);
+        _glVBO = 0;
+    }
+    
+    if (_glFBO) {
+        glDeleteFramebuffers(1, &_glFBO);
+        _glFBO = 0;
+    }
+    
+    // 清理Core Video资源
+    if (_renderTexture) {
+        CFRelease(_renderTexture);
+        _renderTexture = NULL;
+    }
+    
+    if (_textureCache) {
+        CVOpenGLESTextureCacheFlush(_textureCache, 0);
+        CFRelease(_textureCache);
+        _textureCache = NULL;
+    }
+}
+
 - (void)cleanup {
     // 停止渲染
     [self stopRendering];
     
-    // 清理OpenGL ES资源
+    // 清理主线程OpenGL ES资源
     if (_glContext) {
         [EAGLContext setCurrentContext:_glContext];
         
