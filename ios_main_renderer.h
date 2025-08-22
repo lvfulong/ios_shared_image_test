@@ -23,5 +23,6 @@
 - (BOOL)initialize;
 - (void)startRendering;
 - (void)stopRendering;
+- (void)displayRenderResult;
 
 @end
