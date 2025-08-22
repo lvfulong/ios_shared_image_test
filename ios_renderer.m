@@ -106,51 +106,7 @@ static const float triangleVertices[] = {
     return YES;
 }
 
-- (BOOL)initializeOpenGLES {
-    // 确保在主线程中创建EAGL上下文
-    if (![NSThread isMainThread]) {
-        NSLog(@"OpenGL ES context must be created on main thread");
-        return NO;
-    }
-    
-    // 创建EAGL上下文
-    _glContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-    if (!_glContext) {
-        NSLog(@"Failed to create EAGL context");
-        return NO;
-    }
-    
-    // 设置当前上下文
-    if (![EAGLContext setCurrentContext:_glContext]) {
-        NSLog(@"Failed to set current EAGL context");
-        return NO;
-    }
-    
-    // 编译着色器
-    if (![self compileShaders]) {
-        NSLog(@"Failed to compile shaders");
-        return NO;
-    }
-    
-    // 创建顶点缓冲区
-    glGenBuffers(1, &_glVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, _glVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
-    
-    // 创建Core Video纹理缓存
-    if (![self createTextureCache]) {
-        NSLog(@"Failed to create texture cache");
-        return NO;
-    }
-    
-    // 创建直接渲染到IOSurface的帧缓冲区
-    if (![self createDirectIOSurfaceFramebuffer]) {
-        NSLog(@"Failed to create direct IOSurface framebuffer");
-        return NO;
-    }
-    
-    return YES;
-}
+// 主线程不再需要OpenGL ES初始化，所有OpenGL ES资源都在渲染线程中创建
 
 - (BOOL)compileShaders {
     // 编译顶点着色器
@@ -202,10 +158,17 @@ static const float triangleVertices[] = {
 }
 
 - (BOOL)createTextureCache {
+    // 获取当前EAGL上下文
+    EAGLContext* currentContext = [EAGLContext currentContext];
+    if (!currentContext) {
+        NSLog(@"No current EAGL context for texture cache creation");
+        return NO;
+    }
+    
     // 创建Core Video纹理缓存
     CVReturn result = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault,
                                                    NULL,
-                                                   _glContext,
+                                                   currentContext,
                                                    NULL,
                                                    &_textureCache);
     if (result != kCVReturnSuccess) {
@@ -220,6 +183,12 @@ static const float triangleVertices[] = {
     // 创建帧缓冲区
     glGenFramebuffers(1, &_glFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, _glFBO);
+    
+    // 确保有纹理缓存
+    if (!_textureCache) {
+        NSLog(@"Texture cache is not available");
+        return NO;
+    }
     
     // 关键优化：使用Core Video纹理缓存直接从IOSurface创建OpenGL ES纹理
     CVReturn result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
@@ -432,38 +401,6 @@ static const float triangleVertices[] = {
 - (void)cleanup {
     // 停止渲染
     [self stopRendering];
-    
-    // 清理主线程OpenGL ES资源
-    if (_glContext) {
-        [EAGLContext setCurrentContext:_glContext];
-        
-        if (_glProgram) {
-            glDeleteProgram(_glProgram);
-            _glProgram = 0;
-        }
-        
-        if (_glVBO) {
-            glDeleteBuffers(1, &_glVBO);
-            _glVBO = 0;
-        }
-        
-        if (_glFBO) {
-            glDeleteFramebuffers(1, &_glFBO);
-            _glFBO = 0;
-        }
-    }
-    
-    // 清理Core Video资源
-    if (_renderTexture) {
-        CFRelease(_renderTexture);
-        _renderTexture = NULL;
-    }
-    
-    if (_textureCache) {
-        CVOpenGLESTextureCacheFlush(_textureCache, 0);
-        CFRelease(_textureCache);
-        _textureCache = NULL;
-    }
     
     // 清理IOSurface
     if (_ioSurface) {
