@@ -53,6 +53,15 @@ static const float triangleVertices[] = {
 }
 
 - (BOOL)initialize {
+    // 确保在主线程中初始化
+    if (![NSThread isMainThread]) {
+        __block BOOL result = NO;
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            result = [self initialize];
+        });
+        return result;
+    }
+    
     // 初始化Metal设备
     if (![self initializeMetal]) {
         NSLog(@"Failed to initialize Metal");
@@ -113,6 +122,12 @@ static const float triangleVertices[] = {
 }
 
 - (BOOL)initializeOpenGLES {
+    // 确保在主线程中创建EAGL上下文
+    if (![NSThread isMainThread]) {
+        NSLog(@"OpenGL ES context must be created on main thread");
+        return NO;
+    }
+    
     // 创建EAGL上下文
     _glContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
     if (!_glContext) {
@@ -260,12 +275,31 @@ static const float triangleVertices[] = {
     
     _isRendering = YES;
     
+    // 确保在主线程中创建共享上下文
+    if ([NSThread isMainThread]) {
+        [self startRenderThread];
+    } else {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self startRenderThread];
+        });
+    }
+    
+    NSLog(@"iOS direct rendering started");
+}
+
+- (void)startRenderThread {
+    // 创建共享上下文
+    EAGLContext* sharedContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2 
+                                                       sharegroup:_glContext.sharegroup];
+    if (!sharedContext) {
+        NSLog(@"Failed to create shared EAGL context");
+        return;
+    }
+    
     // 在后台线程中启动渲染
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        [self renderLoop];
+        [self renderLoopWithContext:sharedContext];
     });
-    
-    NSLog(@"iOS direct rendering started in background thread");
 }
 
 - (void)stopRendering {
@@ -273,24 +307,29 @@ static const float triangleVertices[] = {
     NSLog(@"iOS direct rendering stopped");
 }
 
-- (void)renderLoop {
+- (void)renderLoopWithContext:(EAGLContext*)context {
     // 确保在当前线程中设置EAGL上下文
-    if (![EAGLContext setCurrentContext:_glContext]) {
+    if (![EAGLContext setCurrentContext:context]) {
         NSLog(@"Failed to set current EAGL context in render thread");
         return;
     }
     
     while (_isRendering) {
-        [self renderTriangle];
-        
-        // 标记有新结果
-        pthread_mutex_lock(&_surfaceMutex);
-        _hasNewResult = YES;
-        pthread_mutex_unlock(&_surfaceMutex);
-        
-        // 等待一段时间
-        [NSThread sleepForTimeInterval:1.0/60.0]; // ~60 FPS
+        @autoreleasepool {
+            [self renderTriangle];
+            
+            // 标记有新结果
+            pthread_mutex_lock(&_surfaceMutex);
+            _hasNewResult = YES;
+            pthread_mutex_unlock(&_surfaceMutex);
+            
+            // 等待一段时间
+            [NSThread sleepForTimeInterval:1.0/60.0]; // ~60 FPS
+        }
     }
+    
+    // 清理上下文
+    [EAGLContext setCurrentContext:nil];
 }
 
 - (void)renderTriangle {
