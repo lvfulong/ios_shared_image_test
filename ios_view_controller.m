@@ -48,7 +48,7 @@
         (NSString*)kIOSurfaceHeight: @512,
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(512 * 4),
-        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32RGBA) // 使用RGBA格式，更兼容OpenGL ES
+        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32BGRA) // 使用BGRA格式，更兼容iOS
     };
     
     // 创建IOSurface

@@ -94,7 +94,7 @@ static const float triangleVertices[] = {
         (NSString*)kIOSurfaceHeight: @(_renderHeight),
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(_renderWidth * 4),
-        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32RGBA) // 使用RGBA格式，更兼容OpenGL ES
+        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32BGRA) // 使用BGRA格式，更兼容iOS
     };
     
     // 创建IOSurface
@@ -186,17 +186,34 @@ static const float triangleVertices[] = {
     glGenFramebuffers(1, &_glFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, _glFBO);
     
+    // 获取IOSurface的像素格式
+    OSType pixelFormat = IOSurfaceGetPixelFormat(_ioSurface);
+    NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
+    
+    // 根据IOSurface的像素格式选择合适的OpenGL ES格式
+    GLenum glFormat, glType;
+    if (pixelFormat == kCVPixelFormatType_32RGBA) {
+        glFormat = GL_RGBA;
+        glType = GL_UNSIGNED_BYTE;
+    } else if (pixelFormat == kCVPixelFormatType_32BGRA) {
+        glFormat = GL_BGRA;
+        glType = GL_UNSIGNED_BYTE;
+    } else {
+        NSLog(@"Unsupported pixel format: %u", (unsigned int)pixelFormat);
+        return NO;
+    }
+    
     // 使用Core Video纹理缓存直接从IOSurface创建OpenGL ES纹理
     CVReturn result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
                                                                    _textureCache,
                                                                    _ioSurface,
                                                                    NULL,
                                                                    GL_TEXTURE_2D,
-                                                                   GL_RGBA,
+                                                                   glFormat, // 内部格式
                                                                    (GLsizei)_renderWidth,
                                                                    (GLsizei)_renderHeight,
-                                                                   GL_RGBA,
-                                                                   GL_UNSIGNED_BYTE,
+                                                                   glFormat, // 外部格式
+                                                                   glType,
                                                                    0,
                                                                    &_renderTexture);
     
@@ -216,7 +233,7 @@ static const float triangleVertices[] = {
         return NO;
     }
     
-    NSLog(@"Successfully created zero-copy IOSurface framebuffer");
+    NSLog(@"Successfully created zero-copy IOSurface framebuffer with format: %u", (unsigned int)pixelFormat);
     return YES;
 }
 
