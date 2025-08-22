@@ -231,7 +231,7 @@ static const float triangleVertices[] = {
                                                                    (GLsizei)_renderWidth,
                                                                    (GLsizei)_renderHeight,
                                                                    GL_BGRA,
-                                                                   GL_UNSIGNED_INT_8_8_8_8_REV,
+                                                                   GL_UNSIGNED_BYTE,
                                                                    0,
                                                                    &_renderTexture);
     
