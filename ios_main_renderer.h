@@ -24,5 +24,7 @@
 - (void)startRendering;
 - (void)stopRendering;
 - (void)displayRenderResult;
+- (BOOL)hasNewRenderResult;
+- (IOSurfaceRef)getCurrentSurface;
 
 @end

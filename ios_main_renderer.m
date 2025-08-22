@@ -231,6 +231,14 @@ static const float quadVertices[] = {
     NSLog(@"Texture updated, ready for display");
 }
 
+- (BOOL)hasNewRenderResult {
+    return [_renderer hasNewRenderResult];
+}
+
+- (IOSurfaceRef)getCurrentSurface {
+    return [_renderer getCurrentSurface];
+}
+
 - (void)dealloc {
     if (_surfaceRef) {
         CFRelease(_surfaceRef);
