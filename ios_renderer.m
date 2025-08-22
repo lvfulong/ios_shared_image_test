@@ -88,13 +88,13 @@ static const float triangleVertices[] = {
 }
 
 - (BOOL)createIOSurface {
-    // 创建IOSurface属性
+    // 创建IOSurface属性 - 使用RGBA格式避免BGRA兼容性问题
     NSDictionary* surfaceProperties = @{
         (NSString*)kIOSurfaceWidth: @(_renderWidth),
         (NSString*)kIOSurfaceHeight: @(_renderHeight),
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(_renderWidth * 4),
-        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32RGBA) // 使用RGBA格式，与OpenGL ES兼容
+        (NSString*)kIOSurfacePixelFormat: @(1111970369) // 使用kCVPixelFormatType_32RGBA，确保与OpenGL ES兼容
     };
     
     // 创建IOSurface
@@ -104,7 +104,11 @@ static const float triangleVertices[] = {
         return NO;
     }
     
-    NSLog(@"Created IOSurface with format: %u", (unsigned int)IOSurfaceGetPixelFormat(_ioSurface));
+    OSType pixelFormat = IOSurfaceGetPixelFormat(_ioSurface);
+    NSLog(@"Created IOSurface with format: %u (%@)", 
+          (unsigned int)pixelFormat,
+          pixelFormat == 1111970369 ? @"RGBA" : 
+          pixelFormat == 1380401729 ? @"BGRA" : @"Unknown");
     return YES;
 }
 
@@ -212,8 +216,12 @@ static const float triangleVertices[] = {
     // 根据IOSurface的实际像素格式选择合适的OpenGL ES格式
     GLenum glFormat = GL_RGBA;
     if (pixelFormat == 1380401729) { // kCVPixelFormatType_32BGRA
-        glFormat = GL_BGRA;
-        NSLog(@"Render thread using GL_BGRA format for BGRA pixel format");
+        // iOS通常不支持GL_BGRA，使用GL_RGBA并处理格式转换
+        glFormat = GL_RGBA;
+        NSLog(@"Render thread: BGRA pixel format detected, using GL_RGBA with format conversion");
+    } else if (pixelFormat == 1111970369) { // kCVPixelFormatType_32RGBA
+        glFormat = GL_RGBA;
+        NSLog(@"Render thread using GL_RGBA format for RGBA pixel format");
     } else {
         NSLog(@"Render thread using GL_RGBA format for pixel format: %u", (unsigned int)pixelFormat);
     }
