@@ -51,11 +51,13 @@ static const float quadVertices[] = {
 
 @implementation IOSMainRenderer
 
-- (instancetype)initWithMetalView:(MTKView*)view {
+- (instancetype)initWithSurface:(IOSurfaceRef)surface {
     self = [super init];
     if (self) {
-        _metalView = view;
-        _metalView.delegate = self;
+        _surfaceRef = surface;
+        if (_surfaceRef) {
+            CFRetain(_surfaceRef);
+        }
     }
     return self;
 }
@@ -67,10 +69,6 @@ static const float quadVertices[] = {
         NSLog(@"Metal is not supported on this device");
         return NO;
     }
-    
-    // 设置Metal视图的设备
-    _metalView.device = _metalDevice;
-    _metalView.clearColor = MTLClearColorMake(0.1, 0.1, 0.1, 1.0);
     
     // 创建命令队列
     _commandQueue = [_metalDevice newCommandQueue];
@@ -104,7 +102,7 @@ static const float quadVertices[] = {
         return NO;
     }
     
-    NSLog(@"IOSMainRendererDirect initialized successfully");
+    NSLog(@"IOSMainRenderer initialized successfully with IOSurface");
     return YES;
 }
 
@@ -147,7 +145,7 @@ static const float quadVertices[] = {
     MTLRenderPipelineDescriptor* pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
     pipelineDescriptor.vertexFunction = vertexFunction;
     pipelineDescriptor.fragmentFunction = fragmentFunction;
-    pipelineDescriptor.colorAttachments[0].pixelFormat = _metalView.colorPixelFormat;
+    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
     
     // 设置顶点描述符
     MTLVertexDescriptor* vertexDescriptor = [[MTLVertexDescriptor alloc] init];
@@ -178,21 +176,15 @@ static const float quadVertices[] = {
 
 - (void)startRendering {
     [_renderer startRendering];
-    NSLog(@"Started direct rendering");
+    NSLog(@"Started IOSurface-based rendering");
 }
 
 - (void)stopRendering {
     [_renderer stopRendering];
-    NSLog(@"Stopped direct rendering");
+    NSLog(@"Stopped IOSurface-based rendering");
 }
 
-#pragma mark - MTKViewDelegate
-
-- (void)mtkView:(MTKView*)view drawableSizeWillChange:(CGSize)size {
-    NSLog(@"Metal view size changed to: %fx%f", size.width, size.height);
-}
-
-- (void)drawInMTKView:(MTKView*)view {
+- (void)renderToSurface {
     // 检查是否有新的渲染结果
     if ([_renderer hasNewRenderResult]) {
         // 获取当前的IOSurface
@@ -206,49 +198,19 @@ static const float quadVertices[] = {
         }
     }
     
-    // 获取当前可绘制对象
-    id<CAMetalDrawable> drawable = [view currentDrawable];
-    if (!drawable) {
-        return;
+    // 如果我们需要渲染到目标IOSurface
+    if (_surfaceRef) {
+        // 这里可以添加渲染到目标IOSurface的逻辑
+        // 目前我们只是更新纹理，实际的渲染由外部控制
+        NSLog(@"Rendering to target IOSurface");
     }
-    
-    // 创建渲染通道描述符
-    MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-    renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
-    renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.1, 0.1, 0.1, 1.0);
-    renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-    
-    // 创建命令缓冲区
-    id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-    
-    // 创建渲染命令编码器
-    id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-    
-    // 设置渲染管线状态
-    [renderEncoder setRenderPipelineState:_pipelineState];
-    
-    // 设置顶点缓冲区
-    [renderEncoder setVertexBuffer:_vertexBuffer offset:0 atIndex:0];
-    
-    // 获取当前纹理
-    id<MTLTexture> currentTexture = [_textureManager getCurrentTexture];
-    if (currentTexture) {
-        // 设置片段着色器的纹理
-        [renderEncoder setFragmentTexture:currentTexture atIndex:0];
-        
-        // 绘制全屏四边形
-        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle
-                          vertexStart:0
-                          vertexCount:6];
+}
+
+- (void)dealloc {
+    if (_surfaceRef) {
+        CFRelease(_surfaceRef);
+        _surfaceRef = NULL;
     }
-    
-    // 结束渲染编码
-    [renderEncoder endEncoding];
-    
-    // 提交命令缓冲区并呈现
-    [commandBuffer presentDrawable:drawable];
-    [commandBuffer commit];
 }
 
 @end
