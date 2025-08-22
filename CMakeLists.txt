@@ -18,7 +18,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_library(UIKIT_FRAMEWORK UIKit PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
 find_library(FOUNDATION_FRAMEWORK Foundation PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
 find_library(METAL_FRAMEWORK Metal PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(METALKIT_FRAMEWORK MetalKit PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
+# 移除 MetalKit 依赖，只使用 IOSurface
 find_library(OPENGLES_FRAMEWORK OpenGLES PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
 find_library(IOSURFACE_FRAMEWORK IOSurface PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
 find_library(COREVIDEO_FRAMEWORK CoreVideo PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
@@ -54,7 +54,6 @@ target_link_libraries(ios_direct_rendering
     ${UIKIT_FRAMEWORK}
     ${FOUNDATION_FRAMEWORK}
     ${METAL_FRAMEWORK}
-    ${METALKIT_FRAMEWORK}
     ${OPENGLES_FRAMEWORK}
     ${IOSURFACE_FRAMEWORK}
     ${COREVIDEO_FRAMEWORK}
@@ -74,9 +73,11 @@ target_include_directories(ios_direct_rendering PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks
     ${CMAKE_OSX_SYSROOT}/usr/include
+    ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks/IOSurface.framework/Headers
 )
 
 # 设置预处理器定义
 target_compile_definitions(ios_direct_rendering PRIVATE
     IOS_DIRECT_RENDERING=1
+    USE_IOSURFACE=1
 )

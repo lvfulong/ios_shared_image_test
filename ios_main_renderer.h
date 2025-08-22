@@ -16,8 +16,8 @@
 @property (nonatomic, strong) id<MTLRenderPipelineState> pipelineState;
 @property (nonatomic, strong) id<MTLBuffer> vertexBuffer;
 
-@property (nonatomic, strong) IOSRendererDirect* renderer;
-@property (nonatomic, strong) IOSTextureManagerDirect* textureManager;
+@property (nonatomic, strong) IOSRenderer* renderer;
+@property (nonatomic, strong) IOSTextureManager* textureManager;
 
 - (instancetype)initWithSurface:(IOSurfaceRef)surface;
 - (BOOL)initialize;

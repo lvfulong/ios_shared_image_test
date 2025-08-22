@@ -2,7 +2,6 @@
 
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
-#import <MetalKit/MetalKit.h>
 #ifdef __APPLE__
 #import <IOSurface/IOSurfaceRef.h>
 #endif
