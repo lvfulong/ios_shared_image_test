@@ -4,9 +4,9 @@
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 #import "ios_renderer.h"
-#import "ios_texture_manager_direct.h"
+#import "ios_texture_manager.h"
 
-@interface IOSMainRendererDirect : NSObject <MTKViewDelegate>
+@interface IOSMainRenderer : NSObject <MTKViewDelegate>
 
 @property (nonatomic, strong) MTKView* metalView;
 @property (nonatomic, strong) id<MTLDevice> metalDevice;

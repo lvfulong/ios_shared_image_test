@@ -14,16 +14,6 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 查找必要的框架
-find_library(UIKIT_FRAMEWORK UIKit PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(FOUNDATION_FRAMEWORK Foundation PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(METAL_FRAMEWORK Metal PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(METALKIT_FRAMEWORK MetalKit PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(OPENGLES_FRAMEWORK OpenGLES PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(IOSURFACE_FRAMEWORK IOSurface PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(COREVIDEO_FRAMEWORK CoreVideo PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(QUARTZCORE_FRAMEWORK QuartzCore PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-
 # 设置源文件
 set(SOURCES
     main.m
@@ -49,16 +39,16 @@ set_target_properties(ios_direct_rendering PROPERTIES
     XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos iphonesimulator"
 )
 
-# 链接框架
+# 直接链接框架（使用完整路径）
 target_link_libraries(ios_direct_rendering
-    ${UIKIT_FRAMEWORK}
-    ${FOUNDATION_FRAMEWORK}
-    ${METAL_FRAMEWORK}
-    ${METALKIT_FRAMEWORK}
-    ${OPENGLES_FRAMEWORK}
-    ${IOSURFACE_FRAMEWORK}
-    ${COREVIDEO_FRAMEWORK}
-    ${QUARTZCORE_FRAMEWORK}
+    "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks/UIKit.framework/UIKit"
+    "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks/Foundation.framework/Foundation"
+    "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks/Metal.framework/Metal"
+    "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks/MetalKit.framework/MetalKit"
+    "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks/OpenGLES.framework/OpenGLES"
+    "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks/IOSurface.framework/IOSurface"
+    "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks/CoreVideo.framework/CoreVideo"
+    "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks/QuartzCore.framework/QuartzCore"
 )
 
 # 设置编译选项
@@ -66,14 +56,15 @@ target_compile_options(ios_direct_rendering PRIVATE
     -fobjc-arc
     -fmodules
     -fobjc-weak
-    -F${CMAKE_OSX_SYSROOT}/System/Library/Frameworks
+    -F"${CMAKE_OSX_SYSROOT}/System/Library/Frameworks"
+    -I"${CMAKE_OSX_SYSROOT}/usr/include"
 )
 
 # 设置包含目录
 target_include_directories(ios_direct_rendering PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks
-    ${CMAKE_OSX_SYSROOT}/usr/include
+    "${CMAKE_OSX_SYSROOT}/System/Library/Frameworks"
+    "${CMAKE_OSX_SYSROOT}/usr/include"
 )
 
 # 设置预处理器定义

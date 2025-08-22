@@ -5,7 +5,7 @@
 #import <MetalKit/MetalKit.h>
 #import <IOSurface/IOSurface.h>
 
-@interface IOSTextureManagerDirect : NSObject
+@interface IOSTextureManager : NSObject
 
 @property (nonatomic, strong) id<MTLDevice> metalDevice;
 @property (nonatomic, strong) id<MTLTexture> renderTexture;

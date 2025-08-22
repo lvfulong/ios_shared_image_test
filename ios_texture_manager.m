@@ -1,7 +1,7 @@
 #import "ios_texture_manager.h"
 #import <CoreVideo/CoreVideo.h>
 
-@implementation IOSTextureManagerDirect
+@implementation IOSTextureManager
 
 - (instancetype)initWithMetalDevice:(id<MTLDevice>)device {
     self = [super init];

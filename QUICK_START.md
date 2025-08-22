@@ -111,8 +111,47 @@ Started direct rendering in background thread
 **Q: 构建失败怎么办？**
 A: 确保已安装Xcode和iOS开发工具，检查CMake版本。
 
+**Q: 头文件找不到错误（如 'IOSurface/IOSurface.h' file not found）？**
+A: 运行修复脚本：
+```bash
+# macOS
+chmod +x fix_ios_build.sh
+./fix_ios_build.sh
+
+# Windows
+fix_ios_build.bat
+```
+
 **Q: 应用无法运行？**
 A: 确保设备支持Metal和OpenGL ES 2.0，iOS版本不低于12.0。
 
 **Q: 性能不够理想？**
 A: 本版本已实现零拷贝优化，如需进一步优化可参考README中的扩展建议。
+
+## 🔧 故障排除
+
+### 头文件找不到问题
+如果遇到类似 `'IOSurface/IOSurface.h' file not found` 的错误：
+
+1. **运行修复脚本**：
+   ```bash
+   chmod +x fix_ios_build.sh
+   ./fix_ios_build.sh
+   ```
+
+2. **手动检查**：
+   - 确保Xcode已正确安装
+   - 检查iOS SDK路径：`/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk`
+   - 验证必要的框架是否存在
+
+3. **重新构建**：
+   ```bash
+   ./build_ios.sh --clean
+   ./build_ios.sh
+   ```
+
+### 环境要求检查
+- **Xcode**: 13.0+ (推荐最新版本)
+- **iOS SDK**: 12.0+
+- **设备**: 支持Metal和OpenGL ES 2.0
+- **架构**: ARM64

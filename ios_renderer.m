@@ -31,7 +31,7 @@ static const float triangleVertices[] = {
      0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f   // 右下顶点，蓝色
 };
 
-@implementation IOSRendererDirect
+@implementation IOSRenderer
 
 - (instancetype)initWithWidth:(NSInteger)width height:(NSInteger)height {
     self = [super init];

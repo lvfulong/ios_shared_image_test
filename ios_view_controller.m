@@ -14,7 +14,7 @@
     [self.view addSubview:_metalView];
     
     // 创建主渲染器
-    _mainRenderer = [[IOSMainRendererDirect alloc] initWithMetalView:_metalView];
+    _mainRenderer = [[IOSMainRenderer alloc] initWithMetalView:_metalView];
     
     // 初始化渲染器
     if (![_mainRenderer initialize]) {

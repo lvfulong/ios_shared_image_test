@@ -9,7 +9,7 @@
 #import <CoreVideo/CoreVideo.h>
 #import <pthread.h>
 
-@interface IOSRendererDirect : NSObject
+@interface IOSRenderer : NSObject
 
 @property (nonatomic, strong) id<MTLDevice> metalDevice;
 @property (nonatomic, strong) id<MTLCommandQueue> commandQueue;

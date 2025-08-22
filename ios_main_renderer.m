@@ -49,7 +49,7 @@ static const float quadVertices[] = {
     -1.0f,  1.0f, 0.0f,  0.0f, 0.0f   // 左上
 };
 
-@implementation IOSMainRendererDirect
+@implementation IOSMainRenderer
 
 - (instancetype)initWithMetalView:(MTKView*)view {
     self = [super init];
@@ -91,16 +91,16 @@ static const float quadVertices[] = {
                                              options:MTLResourceStorageModeShared];
     
     // 初始化子线程渲染器
-    _renderer = [[IOSRendererDirect alloc] initWithWidth:512 height:512];
+    _renderer = [[IOSRenderer alloc] initWithWidth:512 height:512];
     if (![_renderer initialize]) {
-        NSLog(@"Failed to initialize IOSRendererDirect");
+        NSLog(@"Failed to initialize IOSRenderer");
         return NO;
     }
     
     // 初始化纹理管理器
-    _textureManager = [[IOSTextureManagerDirect alloc] initWithMetalDevice:_metalDevice];
+    _textureManager = [[IOSTextureManager alloc] initWithMetalDevice:_metalDevice];
     if (![_textureManager initialize]) {
-        NSLog(@"Failed to initialize IOSTextureManagerDirect");
+        NSLog(@"Failed to initialize IOSTextureManager");
         return NO;
     }
     

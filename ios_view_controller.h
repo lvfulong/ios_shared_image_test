@@ -7,6 +7,6 @@
 @interface IOSViewControllerDirect : UIViewController
 
 @property (nonatomic, strong) MTKView* metalView;
-@property (nonatomic, strong) IOSMainRendererDirect* mainRenderer;
+@property (nonatomic, strong) IOSMainRenderer* mainRenderer;
 
 @end
