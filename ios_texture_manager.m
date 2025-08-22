@@ -1,4 +1,4 @@
-#import "ios_texture_manager_direct.h"
+#import "ios_texture_manager.h"
 #import <CoreVideo/CoreVideo.h>
 
 @implementation IOSTextureManagerDirect

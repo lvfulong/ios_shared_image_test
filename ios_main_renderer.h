@@ -3,7 +3,7 @@
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
-#import "ios_renderer_direct.h"
+#import "ios_renderer.h"
 #import "ios_texture_manager_direct.h"
 
 @interface IOSMainRendererDirect : NSObject <MTKViewDelegate>

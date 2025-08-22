@@ -1,4 +1,4 @@
-#import "ios_main_renderer_direct.h"
+#import "ios_main_renderer.h"
 
 // Metal 着色器源码
 static const char* metalVertexShaderSource = R"(

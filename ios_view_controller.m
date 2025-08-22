@@ -1,4 +1,4 @@
-#import "ios_view_controller_direct.h"
+#import "ios_view_controller.h"
 
 @implementation IOSViewControllerDirect
 

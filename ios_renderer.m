@@ -1,4 +1,4 @@
-#import "ios_renderer_direct.h"
+#import "ios_renderer.h"
 #import <OpenGLES/EAGL.h>
 #import <OpenGLES/EAGLDrawable.h>
 

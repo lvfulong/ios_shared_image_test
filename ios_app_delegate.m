@@ -1,4 +1,4 @@
-#import "ios_app_delegate_direct.h"
+#import "ios_app_delegate.h"
 
 @implementation IOSAppDelegateDirect
 

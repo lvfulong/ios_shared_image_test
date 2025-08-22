@@ -1,7 +1,7 @@
 #pragma once
 
 #import <UIKit/UIKit.h>
-#import "ios_view_controller_direct.h"
+#import "ios_view_controller.h"
 
 @interface IOSAppDelegateDirect : UIResponder <UIApplicationDelegate>
 
