@@ -94,7 +94,7 @@ static const float triangleVertices[] = {
         (NSString*)kIOSurfaceHeight: @(_renderHeight),
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(_renderWidth * 4),
-        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32BGRA) // 使用BGRA格式，更兼容iOS
+        (NSString*)kIOSurfacePixelFormat: @(kCVPixelFormatType_32RGBA) // 使用RGBA格式，与OpenGL ES兼容
     };
     
     // 创建IOSurface
@@ -192,7 +192,7 @@ static const float triangleVertices[] = {
     
     // 关键：使用Metal直接从IOSurface创建纹理（真正的零拷贝）
     // 这是Chromium中使用的方法
-    MTLTextureDescriptor* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+    MTLTextureDescriptor* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
                                                                                                  width:_renderWidth
                                                                                                 height:_renderHeight
                                                                                              mipmapped:NO];
@@ -214,10 +214,10 @@ static const float triangleVertices[] = {
                                                                    _ioSurface,
                                                                    NULL,
                                                                    GL_TEXTURE_2D,
-                                                                   GL_BGRA,
+                                                                   GL_RGBA,
                                                                    (GLsizei)_renderWidth,
                                                                    (GLsizei)_renderHeight,
-                                                                   GL_BGRA,
+                                                                   GL_RGBA,
                                                                    GL_UNSIGNED_BYTE,
                                                                    0,
                                                                    &_renderTexture);
@@ -242,9 +242,9 @@ static const float triangleVertices[] = {
         IOSurfaceLock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
         void* pixelData = IOSurfaceGetBaseAddress(_ioSurface);
         
-        // 创建纹理
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA, (GLsizei)_renderWidth, (GLsizei)_renderHeight,
-                     0, GL_BGRA, GL_UNSIGNED_BYTE, pixelData);
+        // 创建纹理 - 使用GL_RGBA格式，因为GL_BGRA在OpenGL ES中可能不支持
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)_renderWidth, (GLsizei)_renderHeight,
+                     0, GL_RGBA, GL_UNSIGNED_BYTE, pixelData);
         
         // 解锁IOSurface
         IOSurfaceUnlock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
