@@ -5,6 +5,9 @@
 #import <OpenGLES/EAGLDrawable.h>
 #import <CoreVideo/CoreVideo.h>
 
+// 禁用 OpenGL ES 弃用警告
+#define GLES_SILENCE_DEPRECATION 1
+
 // 显示用的着色器源码
 static const char* displayVertexShaderSource = R"(
     attribute vec4 position;
@@ -190,7 +193,8 @@ static const unsigned short quadIndices[] = {
     [_mainRenderer displayRenderResult];
     
     // 检查是否有新的渲染结果
-    if ([_mainRenderer hasNewRenderResult]) {
+    BOOL hasNewResult = [_mainRenderer hasNewRenderResult];
+    if (hasNewResult) {
         // 获取当前的IOSurface
         IOSurfaceRef surface = [_mainRenderer getCurrentSurface];
         if (surface) {
@@ -252,19 +256,6 @@ static const unsigned short quadIndices[] = {
             // 释放IOSurface引用
             CFRelease(surface);
         }
-    }
-}
-
-- (void)dealloc {
-    // 停止CADisplayLink
-    if (_displayLink) {
-        [_displayLink invalidate];
-        _displayLink = nil;
-    }
-    
-    if (_ioSurface) {
-        CFRelease(_ioSurface);
-        _ioSurface = NULL;
     }
 }
 
