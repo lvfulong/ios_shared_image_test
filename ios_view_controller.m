@@ -211,18 +211,36 @@ static const unsigned short quadIndices[] = {
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
             
-            // 从IOSurface创建纹理
+            // 从IOSurface创建纹理 - 零拷贝方法
             CVOpenGLESTextureRef textureRef = NULL;
+            
+            // 获取IOSurface的实际像素格式
+            OSType pixelFormat = IOSurfaceGetPixelFormat(surface);
+            NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
+            
+            // 根据像素格式选择合适的OpenGL ES格式
+            GLenum glFormat = GL_RGBA;
+            GLenum glType = GL_UNSIGNED_BYTE;
+            
+            if (pixelFormat == kCVPixelFormatType_32BGRA) {
+                glFormat = GL_BGRA;
+            } else if (pixelFormat == kCVPixelFormatType_32RGBA) {
+                glFormat = GL_RGBA;
+            } else {
+                NSLog(@"Unsupported pixel format: %u, using GL_RGBA", (unsigned int)pixelFormat);
+                glFormat = GL_RGBA;
+            }
+            
             CVReturn result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
                                                                           _displayTextureCache,
                                                                           surface,
                                                                           NULL,
                                                                           GL_TEXTURE_2D,
-                                                                          GL_RGBA,
+                                                                          glFormat,
                                                                           (GLsizei)IOSurfaceGetWidth(surface),
                                                                           (GLsizei)IOSurfaceGetHeight(surface),
-                                                                          GL_RGBA,
-                                                                          GL_UNSIGNED_BYTE,
+                                                                          glFormat,
+                                                                          glType,
                                                                           0,
                                                                           &textureRef);
             
@@ -248,9 +266,9 @@ static const unsigned short quadIndices[] = {
                 // 释放纹理引用
                 CFRelease(textureRef);
                 
-                NSLog(@"Displayed IOSurface content to screen");
+                NSLog(@"Displayed IOSurface content to screen using zero-copy CVOpenGLESTextureCache");
             } else {
-                NSLog(@"Failed to create display texture from IOSurface: %d", result);
+                NSLog(@"Failed to create display texture from IOSurface: %d (pixel format: %u)", result, (unsigned int)pixelFormat);
             }
             
             // 释放IOSurface引用
