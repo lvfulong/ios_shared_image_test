@@ -44,7 +44,7 @@
         _renderTexture.height != height) {
         
         // 创建新的Metal纹理描述符
-        MTLTextureDescriptor* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+        MTLTextureDescriptor* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
                                                                                                      width:width
                                                                                                     height:height
                                                                                                  mipmapped:NO];

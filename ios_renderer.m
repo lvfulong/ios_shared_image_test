@@ -89,12 +89,16 @@ static const float triangleVertices[] = {
 
 - (BOOL)createIOSurface {
     // 创建IOSurface属性 - 使用RGBA格式避免BGRA兼容性问题
+    // 添加必要的对齐和缓存属性以确保与OpenGL ES兼容
     NSDictionary* surfaceProperties = @{
         (NSString*)kIOSurfaceWidth: @(_renderWidth),
         (NSString*)kIOSurfaceHeight: @(_renderHeight),
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(_renderWidth * 4),
-        (NSString*)kIOSurfacePixelFormat: @(1111970369) // 使用kCVPixelFormatType_32RGBA，确保与OpenGL ES兼容
+        (NSString*)kIOSurfacePixelFormat: @(1111970369), // 使用kCVPixelFormatType_32RGBA，确保与OpenGL ES兼容
+        (NSString*)kIOSurfaceCacheMode: @(kIOMapCacheModeWriteCombined), // 优化写入性能
+        (NSString*)kIOSurfaceIsGlobal: @YES, // 允许跨进程共享
+        (NSString*)kIOSurfaceAllocSize: @(_renderWidth * _renderHeight * 4) // 明确指定分配大小
     };
     
     // 创建IOSurface
@@ -231,10 +235,10 @@ static const float triangleVertices[] = {
                                                                    _ioSurface,
                                                                    NULL,
                                                                    GL_TEXTURE_2D,
-                                                                   glFormat,
+                                                                   GL_RGBA, // 内部格式
                                                                    (GLsizei)_renderWidth,
                                                                    (GLsizei)_renderHeight,
-                                                                   glFormat,
+                                                                   glFormat, // 外部格式
                                                                    GL_UNSIGNED_BYTE,
                                                                    0,
                                                                    &_renderTexture);

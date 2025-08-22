@@ -145,7 +145,7 @@ static const float quadVertices[] = {
     MTLRenderPipelineDescriptor* pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
     pipelineDescriptor.vertexFunction = vertexFunction;
     pipelineDescriptor.fragmentFunction = fragmentFunction;
-    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA8Unorm;
     
     // 设置顶点描述符
     MTLVertexDescriptor* vertexDescriptor = [[MTLVertexDescriptor alloc] init];
