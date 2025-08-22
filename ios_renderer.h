@@ -5,7 +5,9 @@
 #import <MetalKit/MetalKit.h>
 #import <OpenGLES/ES2/gl.h>
 #import <OpenGLES/ES2/glext.h>
-#import <IOSurface/IOSurface.h>
+#ifdef __APPLE__
+#import <IOSurface/IOSurfaceRef.h>
+#endif
 #import <CoreVideo/CoreVideo.h>
 #import <pthread.h>
 

@@ -3,7 +3,9 @@
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
-#import <IOSurface/IOSurface.h>
+#ifdef __APPLE__
+#import <IOSurface/IOSurfaceRef.h>
+#endif
 
 @interface IOSTextureManager : NSObject
 
