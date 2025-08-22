@@ -185,65 +185,44 @@ static const float triangleVertices[] = {
     glGenFramebuffers(1, &_glFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, _glFBO);
     
-    // 确保有纹理缓存
-    if (!_textureCache) {
-        NSLog(@"Texture cache is not available");
-        return NO;
-    }
+    // 创建渲染纹理
+    GLuint renderTexture;
+    glGenTextures(1, &renderTexture);
+    glBindTexture(GL_TEXTURE_2D, renderTexture);
+    
+    // 设置纹理参数
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     
     // 获取IOSurface的像素格式
     OSType pixelFormat = IOSurfaceGetPixelFormat(_ioSurface);
     NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
     
-    // 根据IOSurface的像素格式选择合适的OpenGL ES格式
-    GLenum glFormat = GL_RGBA;
-    GLenum glType = GL_UNSIGNED_BYTE;
+    // 锁定IOSurface以获取像素数据
+    IOSurfaceLock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
     
-    if (pixelFormat == kCVPixelFormatType_32BGRA) {
-        glFormat = GL_BGRA;
-        glType = GL_UNSIGNED_BYTE;
-    } else if (pixelFormat == kCVPixelFormatType_32ARGB) {
-        glFormat = GL_BGRA; // OpenGL ES 2.0 不支持 GL_ARGB，使用 BGRA
-        glType = GL_UNSIGNED_BYTE;
-    } else if (pixelFormat == kCVPixelFormatType_32RGBA) {
-        glFormat = GL_RGBA;
-        glType = GL_UNSIGNED_BYTE;
-    } else {
-        NSLog(@"Unsupported pixel format: %u", (unsigned int)pixelFormat);
-        return NO;
-    }
+    // 获取IOSurface的像素数据
+    void* pixelData = IOSurfaceGetBaseAddress(_ioSurface);
+    size_t bytesPerRow = IOSurfaceGetBytesPerRow(_ioSurface);
     
-    // 关键优化：使用Core Video纹理缓存直接从IOSurface创建OpenGL ES纹理
-    CVReturn result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
-                                                                   _textureCache,
-                                                                   _ioSurface,
-                                                                   NULL,
-                                                                   GL_TEXTURE_2D,
-                                                                   GL_RGBA, // 内部格式
-                                                                   (GLsizei)_renderWidth,
-                                                                   (GLsizei)_renderHeight,
-                                                                   glFormat, // 外部格式
-                                                                   glType,
-                                                                   0,
-                                                                   &_renderTexture);
+    // 创建纹理
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)_renderWidth, (GLsizei)_renderHeight, 
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelData);
     
-    if (result != kCVReturnSuccess) {
-        NSLog(@"Failed to create texture from IOSurface: %d", result);
-        return NO;
-    }
-    
-    // 获取OpenGL ES纹理名称
-    GLuint textureName = CVOpenGLESTextureGetName(_renderTexture);
+    // 解锁IOSurface
+    IOSurfaceUnlock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
     
     // 将纹理附加到帧缓冲区
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureName, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
     
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         NSLog(@"Framebuffer is not complete");
         return NO;
     }
     
-    NSLog(@"Successfully created direct IOSurface framebuffer");
+    NSLog(@"Successfully created direct IOSurface framebuffer using glTexImage2D");
     return YES;
 }
 
@@ -376,12 +355,6 @@ static const float triangleVertices[] = {
     glBindBuffer(GL_ARRAY_BUFFER, _glVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
     
-    // 创建Core Video纹理缓存
-    if (![self createTextureCache]) {
-        NSLog(@"Failed to create texture cache in render thread");
-        return NO;
-    }
-    
     // 创建直接渲染到IOSurface的帧缓冲区
     if (![self createDirectIOSurfaceFramebuffer]) {
         NSLog(@"Failed to create direct IOSurface framebuffer in render thread");
@@ -406,18 +379,6 @@ static const float triangleVertices[] = {
     if (_glFBO) {
         glDeleteFramebuffers(1, &_glFBO);
         _glFBO = 0;
-    }
-    
-    // 清理Core Video资源
-    if (_renderTexture) {
-        CFRelease(_renderTexture);
-        _renderTexture = NULL;
-    }
-    
-    if (_textureCache) {
-        CVOpenGLESTextureCacheFlush(_textureCache, 0);
-        CFRelease(_textureCache);
-        _textureCache = NULL;
     }
 }
 
