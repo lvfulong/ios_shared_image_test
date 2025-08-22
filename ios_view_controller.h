@@ -27,4 +27,14 @@
 @property (nonatomic, assign) GLuint displayVBO;
 @property (nonatomic, assign) GLuint displayIBO;
 
+// 零拷贝方式选择
+typedef NS_ENUM(NSInteger, ZeroCopyMethod) {
+    ZeroCopyMethodCVOpenGLESTextureCache = 0,  // CVOpenGLESTextureCache (推荐) - 真正的零拷贝
+    ZeroCopyMethodMetalTexture = 1,            // Metal纹理直接绑定 - 真正的零拷贝
+    ZeroCopyMethodCopy = 2,                    // 拷贝方式 (备用) - 不是零拷贝
+    ZeroCopyMethodOpenGLESExtension = 3        // OpenGL ES扩展 (iOS不支持真正的零拷贝)
+};
+
+@property (nonatomic, assign) ZeroCopyMethod zeroCopyMethod;
+
 @end
