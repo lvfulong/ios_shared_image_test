@@ -209,15 +209,24 @@ static const float triangleVertices[] = {
     
     // 使用Core Video纹理缓存从IOSurface创建OpenGL ES纹理
     // 注意：这里直接使用IOSurface，而不是Metal纹理
+    // 根据IOSurface的实际像素格式选择合适的OpenGL ES格式
+    GLenum glFormat = GL_RGBA;
+    if (pixelFormat == 1380401729) { // kCVPixelFormatType_32BGRA
+        glFormat = GL_BGRA;
+        NSLog(@"Render thread using GL_BGRA format for BGRA pixel format");
+    } else {
+        NSLog(@"Render thread using GL_RGBA format for pixel format: %u", (unsigned int)pixelFormat);
+    }
+    
     CVReturn result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
                                                                    _textureCache,
                                                                    _ioSurface,
                                                                    NULL,
                                                                    GL_TEXTURE_2D,
-                                                                   GL_RGBA,
+                                                                   glFormat,
                                                                    (GLsizei)_renderWidth,
                                                                    (GLsizei)_renderHeight,
-                                                                   GL_RGBA,
+                                                                   glFormat,
                                                                    GL_UNSIGNED_BYTE,
                                                                    0,
                                                                    &_renderTexture);

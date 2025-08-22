@@ -222,10 +222,12 @@ static const unsigned short quadIndices[] = {
             GLenum glFormat = GL_RGBA;
             GLenum glType = GL_UNSIGNED_BYTE;
             
-            if (pixelFormat == kCVPixelFormatType_32BGRA) {
+            if (pixelFormat == 1380401729) { // kCVPixelFormatType_32BGRA
                 glFormat = GL_BGRA;
-            } else if (pixelFormat == kCVPixelFormatType_32RGBA) {
+                NSLog(@"Using GL_BGRA format for BGRA pixel format");
+            } else if (pixelFormat == 1111970369) { // kCVPixelFormatType_32RGBA
                 glFormat = GL_RGBA;
+                NSLog(@"Using GL_RGBA format for RGBA pixel format");
             } else {
                 NSLog(@"Unsupported pixel format: %u, using GL_RGBA", (unsigned int)pixelFormat);
                 glFormat = GL_RGBA;
