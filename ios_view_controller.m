@@ -154,9 +154,7 @@ static const unsigned short quadIndices[] = {
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(512 * 4),
         (NSString*)kIOSurfacePixelFormat: @(1111970369), // 使用kCVPixelFormatType_32RGBA，确保与OpenGL ES兼容
-        (NSString*)kIOSurfaceCacheMode: @(kIOMapCacheModeWriteCombined), // 优化写入性能
-        (NSString*)kIOSurfaceIsGlobal: @YES, // 允许跨进程共享
-        (NSString*)kIOSurfaceAllocSize: @(512 * 512 * 4) // 明确指定分配大小
+        (NSString*)kIOSurfaceIsGlobal: @YES // 允许跨进程共享
     };
     
     // 创建IOSurface
