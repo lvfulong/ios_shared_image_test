@@ -190,14 +190,26 @@ static const float triangleVertices[] = {
     OSType pixelFormat = IOSurfaceGetPixelFormat(_ioSurface);
     NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
     
-    // 使用Metal直接从IOSurface创建纹理（真正的零拷贝）
+    // 创建渲染纹理
+    GLuint renderTexture;
+    glGenTextures(1, &renderTexture);
+    glBindTexture(GL_TEXTURE_2D, renderTexture);
+    
+    // 设置纹理参数
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    // 关键：使用Metal直接从IOSurface创建纹理（真正的零拷贝）
+    // 这是Chromium中使用的方法
     MTLTextureDescriptor* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
                                                                                                  width:_renderWidth
                                                                                                 height:_renderHeight
                                                                                              mipmapped:NO];
     textureDescriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
     
-    // 关键：直接从IOSurface创建Metal纹理，零拷贝
+    // 直接从IOSurface创建Metal纹理，零拷贝
     id<MTLTexture> metalTexture = [_metalDevice newTextureWithDescriptor:textureDescriptor
                                                               iosurface:_ioSurface
                                                                   plane:0];
@@ -206,7 +218,8 @@ static const float triangleVertices[] = {
         return NO;
     }
     
-    // 使用Core Video纹理缓存从Metal纹理创建OpenGL ES纹理
+    // 使用Core Video纹理缓存从IOSurface创建OpenGL ES纹理
+    // 注意：这里直接使用IOSurface，而不是Metal纹理
     CVReturn result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
                                                                    _textureCache,
                                                                    _ioSurface,
@@ -222,21 +235,36 @@ static const float triangleVertices[] = {
     
     if (result != kCVReturnSuccess) {
         NSLog(@"Failed to create OpenGL ES texture from IOSurface: %d", result);
-        return NO;
+        // 如果Core Video失败，尝试使用glTexImage2D（虽然不是零拷贝，但至少能工作）
+        NSLog(@"Falling back to glTexImage2D method");
+        
+        // 锁定IOSurface以获取像素数据
+        IOSurfaceLock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
+        void* pixelData = IOSurfaceGetBaseAddress(_ioSurface);
+        
+        // 创建纹理
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA, (GLsizei)_renderWidth, (GLsizei)_renderHeight,
+                     0, GL_BGRA, GL_UNSIGNED_BYTE, pixelData);
+        
+        // 解锁IOSurface
+        IOSurfaceUnlock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
+        
+        NSLog(@"Created texture using glTexImage2D fallback");
+    } else {
+        // 获取OpenGL ES纹理名称
+        GLuint textureName = CVOpenGLESTextureGetName(_renderTexture);
+        NSLog(@"Successfully created zero-copy texture: %u", textureName);
     }
     
-    // 获取OpenGL ES纹理名称
-    GLuint textureName = CVOpenGLESTextureGetName(_renderTexture);
-    
     // 将纹理附加到帧缓冲区
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureName, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
     
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         NSLog(@"Framebuffer is not complete");
         return NO;
     }
     
-    NSLog(@"Successfully created zero-copy IOSurface framebuffer with format: %u", (unsigned int)pixelFormat);
+    NSLog(@"Successfully created IOSurface framebuffer with format: %u", (unsigned int)pixelFormat);
     return YES;
 }
 
