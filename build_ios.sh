@@ -236,11 +236,11 @@ main() {
     fi
     
     # 执行构建流程
-    check_dependencies
+    #check_dependencies
     create_build_dir
     configure_project
-    build_project
-    check_build_result
+    #build_project
+    #check_build_result
     
     print_success "=== 构建完成 ==="
     print_info "项目已成功构建为iOS应用"

@@ -15,14 +15,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 查找必要的框架
-find_library(UIKIT_FRAMEWORK UIKit PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(FOUNDATION_FRAMEWORK Foundation PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(METAL_FRAMEWORK Metal PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
+#find_library(UIKIT_FRAMEWORK UIKit PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
+#find_library(FOUNDATION_FRAMEWORK Foundation PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
+#find_library(METAL_FRAMEWORK Metal PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
 # 移除 MetalKit 依赖，只使用 IOSurface
-find_library(OPENGLES_FRAMEWORK OpenGLES PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(IOSURFACE_FRAMEWORK IOSurface PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(COREVIDEO_FRAMEWORK CoreVideo PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
-find_library(QUARTZCORE_FRAMEWORK QuartzCore PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
+#find_library(OPENGLES_FRAMEWORK OpenGLES PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
+#find_library(IOSURFACE_FRAMEWORK IOSurface PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
+#find_library(COREVIDEO_FRAMEWORK CoreVideo PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
+#find_library(QUARTZCORE_FRAMEWORK QuartzCore PATHS ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks NO_DEFAULT_PATH)
 
 # 设置源文件
 set(SOURCES
