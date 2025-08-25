@@ -94,9 +94,9 @@ static const unsigned short quadIndices[] = {
         return;
     }
     
-    // 暂时禁用Metal显示层，只测试UIKit视图
-    // [self createMetalDisplayLayer];
-    // NSLog(@"Created Metal display layer");
+    // 重新启用Metal显示层
+    [self createMetalDisplayLayer];
+    NSLog(@"Created Metal display layer");
     
     NSLog(@"Complete zero-copy rendering system initialized successfully");
 }
