@@ -111,7 +111,16 @@ static const unsigned short quadIndices[] = {
     
     // 创建EAGL层
     CAEAGLLayer* eaglLayer = [CAEAGLLayer layer];
-    eaglLayer.frame = self.view.bounds;
+    
+    // 确保EAGL层有正确的frame
+    CGRect viewBounds = self.view.bounds;
+    if (CGRectIsEmpty(viewBounds)) {
+        // 如果view bounds为空，使用默认大小
+        viewBounds = CGRectMake(0, 0, 375, 667);
+        NSLog(@"View bounds was empty, using default size: %@", NSStringFromCGRect(viewBounds));
+    }
+    
+    eaglLayer.frame = viewBounds;
     eaglLayer.drawableProperties = @{
         kEAGLDrawablePropertyRetainedBacking: @NO,
         kEAGLDrawablePropertyColorFormat: kEAGLColorFormatRGBA8
@@ -389,6 +398,11 @@ static const unsigned short quadIndices[] = {
         NSLog(@"OpenGL ES error before drawing: 0x%x", error);
     }
     
+    // 添加一个简单的测试：直接绘制一个大的彩色矩形
+    NSLog(@"EAGL layer frame: %@", NSStringFromCGRect(_eaglLayer.frame));
+    NSLog(@"EAGL layer bounds: %@", NSStringFromCGRect(_eaglLayer.bounds));
+    NSLog(@"EAGL layer position: %@", NSStringFromCGPoint(_eaglLayer.position));
+    
     // 创建一个简单的着色器程序来绘制彩色矩形
     static GLuint testProgram = 0;
     static GLuint testVBO = 0;
@@ -406,7 +420,7 @@ static const unsigned short quadIndices[] = {
         const char* fragmentShaderSource = R"(
             precision mediump float;
             void main() {
-                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // 红色
+                gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0); // 黄色，更容易看到
             }
         )";
         
@@ -456,8 +470,14 @@ static const unsigned short quadIndices[] = {
     // 绘制矩形
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     
+    // 强制刷新
+    glFinish();
+    
     // 呈现到屏幕
     [_displayContext presentRenderbuffer:GL_RENDERBUFFER];
+    
+    // 检查呈现是否成功
+    NSLog(@"Presented renderbuffer to screen");
     
     // 检查OpenGL ES状态
     error = glGetError();
