@@ -364,10 +364,16 @@ static const unsigned short quadIndices[] = {
         // 测试：绘制一个明显的彩色矩形来确认Metal渲染工作
         NSLog(@"Metal: Testing with colored rectangle");
         
-        // 强制刷新显示
-        [CATransaction flush];
-        
         NSLog(@"Metal: Rendered texture to screen");
+        
+        // 结束渲染编码
+        [renderEncoder endEncoding];
+        
+        // 呈现可绘制对象
+        [commandBuffer presentDrawable:drawable];
+        
+        // 提交命令缓冲区
+        [commandBuffer commit];
         
         // 强制刷新显示
         [CATransaction flush];
