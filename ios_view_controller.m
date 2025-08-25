@@ -50,58 +50,34 @@ static const unsigned short quadIndices[] = {
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    // 设置视图背景色为黑色，让渲染内容更明显
-    self.view.backgroundColor = [UIColor blackColor];
+    // 设置视图背景色为明显的颜色
+    self.view.backgroundColor = [UIColor redColor];
+    NSLog(@"Set view background to red");
     
-    // 移除调试视图，只保留Metal层来显示渲染内容
+    // 添加一个简单的测试视图
+    UIView* testView = [[UIView alloc] initWithFrame:CGRectMake(50, 50, 200, 200)];
+    testView.backgroundColor = [UIColor blueColor];
+    [self.view addSubview:testView];
+    NSLog(@"Added blue test view at (50,50) 200x200");
     
-    // 确保Metal层在最前面
-    if (_metalLayer) {
-        // 移除并重新添加以确保在最前面
-        [_metalLayer removeFromSuperlayer];
-        [self.view.layer addSublayer:_metalLayer];
-        NSLog(@"Metal layer brought to front");
-    }
+    // 添加一个全屏的测试视图
+    UIView* fullscreenView = [[UIView alloc] initWithFrame:self.view.bounds];
+    fullscreenView.backgroundColor = [UIColor greenColor];
+    fullscreenView.alpha = 0.5; // 半透明
+    [self.view addSubview:fullscreenView];
+    NSLog(@"Added semi-transparent green fullscreen view");
     
-    //NSLog(@"Added test view with frame: %@", NSStringFromCGRect(testView.frame));
+    // 添加一个小的红色视图在最前面
+    UIView* frontView = [[UIView alloc] initWithFrame:CGRectMake(100, 100, 100, 100)];
+    frontView.backgroundColor = [UIColor yellowColor];
+    [self.view addSubview:frontView];
+    [self.view bringSubviewToFront:frontView];
+    NSLog(@"Added yellow front view at (100,100) 100x100");
     
-    // 初始化Metal设备
-    _metalDevice = MTLCreateSystemDefaultDevice();
-    if (!_metalDevice) {
-        NSLog(@"Metal is not supported on this device");
-        return;
-    }
+    NSLog(@"View hierarchy setup completed");
     
-    // 创建Metal命令队列
-    _commandQueue = [_metalDevice newCommandQueue];
-    if (!_commandQueue) {
-        NSLog(@"Failed to create Metal command queue");
-        return;
-    }
-    
-    // 设置零拷贝方式选择 (可以在这里切换)
-    _zeroCopyMethod = ZeroCopyMethodMetalTexture; // 优先使用Metal纹理，因为CVOpenGLESTextureCache有问题
-    
-    // 创建Metal显示层来显示渲染结果
-    [self createMetalDisplayLayer];
-    NSLog(@"Created Metal display layer");
-    
-    // 创建IOSurface用于渲染
-    if (![self createIOSurface]) {
-        NSLog(@"Failed to create IOSurface");
-        return;
-    }
-    
-    // 创建主渲染器
-    _mainRenderer = [[IOSMainRenderer alloc] initWithSurface:_ioSurface];
-    
-    // 初始化渲染器
-    if (![_mainRenderer initialize]) {
-        NSLog(@"Failed to initialize main renderer");
-        return;
-    }
-    
-    NSLog(@"IOSurface-based rendering view controller loaded successfully");
+    // 暂时禁用复杂的Metal渲染，只测试基本视图显示
+    NSLog(@"Skipping Metal setup for now, testing basic view display");
 }
 
 - (void)createMetalDisplayLayer {
@@ -259,18 +235,21 @@ static const unsigned short quadIndices[] = {
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     
-    // 开始渲染
-    [_mainRenderer startRendering];
-    NSLog(@"Started IOSurface-based rendering in view controller");
+    NSLog(@"View will appear - basic view display test");
     
-    // 创建CADisplayLink来同步显示刷新率
-    _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateDisplay:)];
-    _displayLink.preferredFramesPerSecond = 30; // 降低到30 FPS减少闪烁
-    [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
-    NSLog(@"Created CADisplayLink for Metal display");
+    // 添加一个动画来确认视图是可见的
+    UIView* animatedView = [[UIView alloc] initWithFrame:CGRectMake(200, 200, 50, 50)];
+    animatedView.backgroundColor = [UIColor purpleColor];
+    [self.view addSubview:animatedView];
+    [self.view bringSubviewToFront:animatedView];
     
-    // 立即测试Metal渲染
-    [self testMetalRendering];
+    // 添加一个简单的动画
+    [UIView animateWithDuration:2.0 delay:1.0 options:UIViewAnimationOptionRepeat animations:^{
+        animatedView.transform = CGAffineTransformMakeScale(2.0, 2.0);
+        animatedView.backgroundColor = [UIColor orangeColor];
+    } completion:nil];
+    
+    NSLog(@"Added animated purple view with scaling animation");
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
