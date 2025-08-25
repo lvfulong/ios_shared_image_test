@@ -411,7 +411,7 @@ static const unsigned short quadIndices[] = {
                                                                    &textureRef);
     
     if (result == kCVReturnSuccess) {
-        // 获取纹理名称
+        // 获取纹理名称 (使用非弃用的方法)
         GLuint textureName = CVOpenGLESTextureGetName(textureRef);
         
         // 绑定纹理
@@ -456,7 +456,7 @@ static const unsigned short quadIndices[] = {
                                                                  &textureRef);
             
             if (result == kCVReturnSuccess) {
-                // 获取纹理名称
+                // 获取纹理名称 (使用非弃用的方法)
                 GLuint textureName = CVOpenGLESTextureGetName(textureRef);
                 
                 // 绑定纹理

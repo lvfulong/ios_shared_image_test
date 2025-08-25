@@ -1,6 +1,7 @@
 #pragma once
 
 #define GLES_SILENCE_DEPRECATION 1
+#define COREVIDEO_GL_SILENCE_DEPRECATION 1
 
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>

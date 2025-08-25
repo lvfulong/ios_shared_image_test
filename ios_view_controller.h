@@ -1,6 +1,7 @@
 #pragma once
 
 #define GLES_SILENCE_DEPRECATION 1
+#define COREVIDEO_GL_SILENCE_DEPRECATION 1
 
 #import <UIKit/UIKit.h>
 #import <OpenGLES/EAGL.h>
@@ -26,6 +27,10 @@
 @property (nonatomic, assign) GLuint displayProgram;
 @property (nonatomic, assign) GLuint displayVBO;
 @property (nonatomic, assign) GLuint displayIBO;
+
+// Metal 相关
+@property (nonatomic, strong) id<MTLDevice> metalDevice;
+@property (nonatomic, strong) id<MTLCommandQueue> commandQueue;
 
 // 零拷贝方式选择
 typedef NS_ENUM(NSInteger, ZeroCopyMethod) {

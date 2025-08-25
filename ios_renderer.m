@@ -268,7 +268,7 @@ static const float triangleVertices[] = {
         
         NSLog(@"Using Metal texture for zero-copy rendering (CVOpenGLESTextureCache unavailable)");
     } else {
-        // 获取OpenGL ES纹理名称
+        // 获取OpenGL ES纹理名称 (使用非弃用的方法)
         GLuint textureName = CVOpenGLESTextureGetName(_renderTexture);
         NSLog(@"Successfully created zero-copy texture with CVOpenGLESTextureCache: %u", textureName);
         
