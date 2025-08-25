@@ -110,13 +110,13 @@ static const unsigned short quadIndices[] = {
     metalLayer.framebufferOnly = NO; // 允许CPU访问，更容易调试
     metalLayer.opaque = NO; // 允许透明度，更容易看到
     
-    // 确保Metal层可见但半透明，让UIKit视图也能看到
-    metalLayer.opacity = 0.7; // 半透明，让UIKit视图可见
+    // 确保Metal层完全可见
+    metalLayer.opacity = 1.0; // 完全不透明
     metalLayer.hidden = NO;
-    metalLayer.zPosition = 1000.0; // 在UIKit视图之上，但不是最高
+    metalLayer.zPosition = 9999.0; // 确保在最前面
     
     // 设置背景色为明显的颜色，便于调试
-    metalLayer.backgroundColor = [UIColor orangeColor].CGColor; // 橙色，更容易区分
+    metalLayer.backgroundColor = [UIColor greenColor].CGColor; // 绿色，非常明显
     
     [self.view.layer addSublayer:metalLayer];
     
@@ -129,18 +129,8 @@ static const unsigned short quadIndices[] = {
     // 保存Metal层引用
     _metalLayer = metalLayer;
     
-    // 添加一个测试视图来模拟Metal层的位置和可见性
-    UIView* metalTestView = [[UIView alloc] initWithFrame:self.view.bounds];
-    metalTestView.backgroundColor = [UIColor magentaColor]; // 使用更鲜艳的颜色
-    metalTestView.alpha = 1.0; // 完全不透明
-    metalTestView.tag = 999; // 用于标识
-    [self.view addSubview:metalTestView];
-    [self.view bringSubviewToFront:metalTestView];
-    NSLog(@"Added magenta test view to simulate Metal layer visibility");
-    
-    // 确保Metal层在洋红色测试层之下
-    [self.view.layer insertSublayer:metalLayer below:metalTestView.layer];
-    NSLog(@"Inserted Metal layer below magenta test view");
+    // 移除测试视图，只保留Metal层
+    NSLog(@"Metal layer created without test view overlay");
     
     NSLog(@"Created Metal display layer as overlay");
 }
