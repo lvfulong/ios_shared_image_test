@@ -518,7 +518,8 @@ static const unsigned short quadIndices[] = {
         // 这里可以添加渲染逻辑，将纹理绘制到屏幕上
         // 为了简化，我们只是创建了纹理
         
-        [texture release];
+        // ARC模式下不需要手动释放
+        // [texture release];
     } else {
         NSLog(@"Metal: Failed to create texture from IOSurface");
     }
