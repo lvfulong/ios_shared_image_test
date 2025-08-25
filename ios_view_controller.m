@@ -108,9 +108,9 @@ static const unsigned short quadIndices[] = {
         return;
     }
     
-    // 创建Metal显示层来显示渲染结果
-    [self createMetalDisplayLayer];
-    NSLog(@"Created Metal display layer");
+    // 暂时禁用Metal显示层，只测试UIKit视图
+    // [self createMetalDisplayLayer];
+    // NSLog(@"Created Metal display layer");
     
     NSLog(@"Complete zero-copy rendering system initialized successfully");
 }
@@ -273,17 +273,17 @@ static const unsigned short quadIndices[] = {
     
     NSLog(@"View will appear - starting complete zero-copy rendering system");
     
-    // 开始渲染
-    [_mainRenderer startRendering];
-    NSLog(@"Started IOSurface-based rendering in view controller");
+    // 暂时禁用渲染循环，只测试UIKit视图
+    // [_mainRenderer startRendering];
+    // NSLog(@"Started IOSurface-based rendering in view controller");
     
-    // 创建CADisplayLink来同步显示刷新率
-    _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateDisplay:)];
-    _displayLink.preferredFramesPerSecond = 30; // 降低到30 FPS减少闪烁
-    [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
-    NSLog(@"Created CADisplayLink for Metal display");
+    // 暂时禁用CADisplayLink
+    // _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateDisplay:)];
+    // _displayLink.preferredFramesPerSecond = 30;
+    // [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+    // NSLog(@"Created CADisplayLink for Metal display");
     
-    // 暂时禁用Metal测试渲染，确保UIKit视图可见
+    // 暂时禁用Metal测试渲染
     // [self testMetalRendering];
     
     NSLog(@"Complete zero-copy rendering system started successfully");
