@@ -94,9 +94,9 @@ static const unsigned short quadIndices[] = {
         return;
     }
     
-    // 暂时禁用Metal显示层，只测试UIKit视图
-    // [self createMetalDisplayLayer];
-    // NSLog(@"Created Metal display layer");
+    // 重新启用Metal显示层
+    [self createMetalDisplayLayer];
+    NSLog(@"Created Metal display layer");
     
     NSLog(@"Complete zero-copy rendering system initialized successfully");
 }
@@ -118,7 +118,12 @@ static const unsigned short quadIndices[] = {
     // 设置背景色为明显的颜色，便于调试
     metalLayer.backgroundColor = [UIColor greenColor].CGColor; // 绿色，非常明显
     
+    // 确保Metal层被正确添加
     [self.view.layer addSublayer:metalLayer];
+    
+    // 强制刷新视图层级
+    [self.view setNeedsLayout];
+    [self.view layoutIfNeeded];
     
     NSLog(@"Metal layer frame: %@, bounds: %@, zPosition: %f, opacity: %f", 
           NSStringFromCGRect(metalLayer.frame), 
