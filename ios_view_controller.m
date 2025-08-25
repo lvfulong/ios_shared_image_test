@@ -131,6 +131,8 @@ static const unsigned short quadIndices[] = {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         NSLog(@"Display framebuffer is not complete");
         return;
+    } else {
+        NSLog(@"Display framebuffer is complete and ready");
     }
     
     // 创建Core Video纹理缓存
@@ -234,14 +236,18 @@ static const unsigned short quadIndices[] = {
             // 设置视口
             glViewport(0, 0, (GLsizei)_eaglLayer.bounds.size.width, (GLsizei)_eaglLayer.bounds.size.height);
             
-            // 清除背景
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            // 清除背景 - 使用明显的颜色来测试显示
+            glClearColor(0.0f, 1.0f, 0.0f, 1.0f); // 绿色背景
             glClear(GL_COLOR_BUFFER_BIT);
             
             // 从IOSurface创建纹理 - 两种零拷贝方式
             // 获取IOSurface的实际像素格式
             OSType pixelFormat = IOSurfaceGetPixelFormat(surface);
             NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
+            
+            // 先测试基本显示是否工作
+            NSLog(@"Testing basic display functionality");
+            [self testBasicDisplay];
             
             BOOL success = NO;
             
@@ -346,6 +352,94 @@ static const unsigned short quadIndices[] = {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadIndices), quadIndices, GL_STATIC_DRAW);
     
     return YES;
+}
+
+- (void)testBasicDisplay {
+    NSLog(@"Drawing a simple colored rectangle to test display");
+    
+    // 检查OpenGL ES状态
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR) {
+        NSLog(@"OpenGL ES error before drawing: 0x%x", error);
+    }
+    
+    // 创建一个简单的着色器程序来绘制彩色矩形
+    static GLuint testProgram = 0;
+    static GLuint testVBO = 0;
+    
+    if (testProgram == 0) {
+        // 创建简单的顶点着色器
+        const char* vertexShaderSource = R"(
+            attribute vec4 position;
+            void main() {
+                gl_Position = position;
+            }
+        )";
+        
+        // 创建简单的片段着色器
+        const char* fragmentShaderSource = R"(
+            precision mediump float;
+            void main() {
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // 红色
+            }
+        )";
+        
+        // 编译着色器
+        GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+        glCompileShader(vertexShader);
+        
+        GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+        glCompileShader(fragmentShader);
+        
+        // 创建程序
+        testProgram = glCreateProgram();
+        glAttachShader(testProgram, vertexShader);
+        glAttachShader(testProgram, fragmentShader);
+        glLinkProgram(testProgram);
+        
+        // 清理着色器
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+        
+        // 创建顶点缓冲区
+        float vertices[] = {
+            -0.5f, -0.5f,
+             0.5f, -0.5f,
+             0.5f,  0.5f,
+            -0.5f,  0.5f
+        };
+        
+        glGenBuffers(1, &testVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, testVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    }
+    
+    // 使用测试程序
+    glUseProgram(testProgram);
+    
+    // 绑定顶点缓冲区
+    glBindBuffer(GL_ARRAY_BUFFER, testVBO);
+    
+    // 设置顶点属性
+    GLint posAttrib = glGetAttribLocation(testProgram, "position");
+    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(posAttrib);
+    
+    // 绘制矩形
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    
+    // 呈现到屏幕
+    [_displayContext presentRenderbuffer:GL_RENDERBUFFER];
+    
+    // 检查OpenGL ES状态
+    error = glGetError();
+    if (error != GL_NO_ERROR) {
+        NSLog(@"OpenGL ES error after drawing: 0x%x", error);
+    }
+    
+    NSLog(@"Basic display test completed");
 }
 
 - (void)drawFullscreenQuad {
