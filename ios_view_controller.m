@@ -108,9 +108,9 @@ static const unsigned short quadIndices[] = {
         return;
     }
     
-    // 暂时禁用Metal显示层，只测试UIKit视图
-    // [self createMetalDisplayLayer];
-    // NSLog(@"Created Metal display layer");
+    // 重新启用Metal显示层，但设置为半透明
+    [self createMetalDisplayLayer];
+    NSLog(@"Created Metal display layer");
     
     NSLog(@"Complete zero-copy rendering system initialized successfully");
 }
@@ -124,10 +124,10 @@ static const unsigned short quadIndices[] = {
     metalLayer.framebufferOnly = NO; // 允许CPU访问，更容易调试
     metalLayer.opaque = NO; // 允许透明度，更容易看到
     
-    // 确保Metal层可见且在最前面
-    metalLayer.opacity = 1.0; // 完全不透明，确保渲染内容可见
+    // 确保Metal层可见但半透明，让UIKit视图也能看到
+    metalLayer.opacity = 0.7; // 半透明，让UIKit视图可见
     metalLayer.hidden = NO;
-    metalLayer.zPosition = 9999.0; // 确保在最前面
+    metalLayer.zPosition = 1000.0; // 在UIKit视图之上，但不是最高
     
     // 设置背景色为透明
     metalLayer.backgroundColor = [UIColor clearColor].CGColor;
