@@ -286,6 +286,28 @@ static const unsigned short quadIndices[] = {
     
     // 每帧都绘制一个简单的测试图案
     [self drawTestPattern];
+    
+    // 强制刷新并呈现测试图案
+    glFinish();
+    [_displayContext presentRenderbuffer:GL_RENDERBUFFER];
+    NSLog(@"Presented test pattern to screen");
+    
+    // 添加一个简单的测试：直接绘制一个大的彩色矩形
+    static BOOL hasDrawnTest = NO;
+    if (!hasDrawnTest) {
+        NSLog(@"Drawing a simple test pattern directly");
+        
+        // 清除背景为亮绿色
+        glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+        // 强制刷新并呈现
+        glFinish();
+        [_displayContext presentRenderbuffer:GL_RENDERBUFFER];
+        NSLog(@"Presented bright green background");
+        
+        hasDrawnTest = YES;
+    }
             
             BOOL success = NO;
             
@@ -517,17 +539,13 @@ static const unsigned short quadIndices[] = {
     // 绘制矩形
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     
-    // 强制刷新
-    glFinish();
-    
-    // 呈现到屏幕
-    [_displayContext presentRenderbuffer:GL_RENDERBUFFER];
-    
     // 检查OpenGL ES状态
     GLenum error = glGetError();
     if (error != GL_NO_ERROR) {
         NSLog(@"OpenGL ES error in drawTestPattern: 0x%x", error);
     }
+    
+    NSLog(@"Drew test pattern (magenta rectangle)");
 }
 
 - (void)drawFullscreenQuad {
