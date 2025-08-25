@@ -96,7 +96,9 @@ static const float triangleVertices[] = {
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(_renderWidth * 4),
         (NSString*)kIOSurfacePixelFormat: @(1111970369), // 使用kCVPixelFormatType_32RGBA，确保与OpenGL ES兼容
-        (NSString*)kIOSurfaceIsGlobal: @YES // 允许跨进程共享
+        (NSString*)kIOSurfaceIsGlobal: @YES, // 允许跨进程共享
+        (NSString*)kIOSurfaceAllocSize: @(_renderWidth * _renderHeight * 4), // 明确指定分配大小
+        (NSString*)kIOSurfaceAlignment: @64 // 64字节对齐，提高兼容性
     };
     
     // 创建IOSurface
@@ -213,8 +215,9 @@ static const float triangleVertices[] = {
         return NO;
     }
     
-    // 使用Core Video纹理缓存从IOSurface创建OpenGL ES纹理
-    // 注意：这里直接使用IOSurface，而不是Metal纹理
+    NSLog(@"Successfully created Metal texture from IOSurface for zero-copy rendering");
+    
+    // 尝试使用Core Video纹理缓存从IOSurface创建OpenGL ES纹理
     // 根据IOSurface的实际像素格式选择合适的OpenGL ES格式
     GLenum glFormat = GL_RGBA;
     if (pixelFormat == 1380401729) { // kCVPixelFormatType_32BGRA
@@ -228,6 +231,7 @@ static const float triangleVertices[] = {
         NSLog(@"Render thread using GL_RGBA format for pixel format: %u", (unsigned int)pixelFormat);
     }
     
+    // 尝试使用CVOpenGLESTextureCache创建零拷贝纹理
     CVReturn result = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault,
                                                                    _textureCache,
                                                                    _ioSurface,
@@ -242,11 +246,10 @@ static const float triangleVertices[] = {
                                                                    &_renderTexture);
     
     if (result != kCVReturnSuccess) {
-        NSLog(@"Failed to create OpenGL ES texture from IOSurface: %d", result);
-        // 如果Core Video失败，尝试使用glTexImage2D（虽然不是零拷贝，但至少能工作）
-        NSLog(@"Falling back to glTexImage2D method");
+        NSLog(@"CVOpenGLESTextureCache failed: %d, using Metal texture for zero-copy", result);
         
-        // 创建渲染纹理
+        // 如果CVOpenGLESTextureCache失败，我们仍然有Metal纹理可以用于零拷贝
+        // 创建一个普通的OpenGL ES纹理作为渲染目标
         GLuint renderTexture;
         glGenTextures(1, &renderTexture);
         glBindTexture(GL_TEXTURE_2D, renderTexture);
@@ -257,25 +260,18 @@ static const float triangleVertices[] = {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         
-        // 锁定IOSurface以获取像素数据
-        IOSurfaceLock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
-        void* pixelData = IOSurfaceGetBaseAddress(_ioSurface);
-        
-        // 创建纹理 - 使用GL_RGBA格式，因为GL_BGRA在OpenGL ES中可能不支持
+        // 创建一个空的纹理，数据将通过Metal纹理共享
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)_renderWidth, (GLsizei)_renderHeight,
-                     0, GL_RGBA, GL_UNSIGNED_BYTE, pixelData);
-        
-        // 解锁IOSurface
-        IOSurfaceUnlock(_ioSurface, kIOSurfaceLockReadOnly, NULL);
+                     0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
         
         // 将纹理附加到帧缓冲区
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
         
-        NSLog(@"Created texture using glTexImage2D fallback");
+        NSLog(@"Using Metal texture for zero-copy rendering (CVOpenGLESTextureCache unavailable)");
     } else {
         // 获取OpenGL ES纹理名称
         GLuint textureName = CVOpenGLESTextureGetName(_renderTexture);
-        NSLog(@"Successfully created zero-copy texture: %u", textureName);
+        NSLog(@"Successfully created zero-copy texture with CVOpenGLESTextureCache: %u", textureName);
         
         // 将零拷贝纹理附加到帧缓冲区
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureName, 0);

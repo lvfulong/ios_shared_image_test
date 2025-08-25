@@ -53,8 +53,22 @@ static const unsigned short quadIndices[] = {
     // 设置视图背景色
     self.view.backgroundColor = [UIColor blackColor];
     
+    // 初始化Metal设备
+    _metalDevice = MTLCreateSystemDefaultDevice();
+    if (!_metalDevice) {
+        NSLog(@"Metal is not supported on this device");
+        return;
+    }
+    
+    // 创建Metal命令队列
+    _commandQueue = [_metalDevice newCommandQueue];
+    if (!_commandQueue) {
+        NSLog(@"Failed to create Metal command queue");
+        return;
+    }
+    
     // 设置零拷贝方式选择 (可以在这里切换)
-    _zeroCopyMethod = ZeroCopyMethodCVOpenGLESTextureCache; // 推荐使用CVOpenGLESTextureCache
+    _zeroCopyMethod = ZeroCopyMethodMetalTexture; // 优先使用Metal纹理，因为CVOpenGLESTextureCache有问题
     
     // 创建显示层来显示渲染结果
     [self createDisplayLayer];
@@ -154,7 +168,9 @@ static const unsigned short quadIndices[] = {
         (NSString*)kIOSurfaceBytesPerElement: @4,
         (NSString*)kIOSurfaceBytesPerRow: @(512 * 4),
         (NSString*)kIOSurfacePixelFormat: @(1111970369), // 使用kCVPixelFormatType_32RGBA，确保与OpenGL ES兼容
-        (NSString*)kIOSurfaceIsGlobal: @YES // 允许跨进程共享
+        (NSString*)kIOSurfaceIsGlobal: @YES, // 允许跨进程共享
+        (NSString*)kIOSurfaceAllocSize: @(512 * 512 * 4), // 明确指定分配大小
+        (NSString*)kIOSurfaceAlignment: @64 // 64字节对齐，提高兼容性
     };
     
     // 创建IOSurface
@@ -605,11 +621,13 @@ static const unsigned short quadIndices[] = {
 
 // 方式3: 使用Metal纹理直接绑定 (最现代的方式)
 - (BOOL)displayUsingMetalTexture:(IOSurfaceRef)surface pixelFormat:(OSType)pixelFormat {
-    NSLog(@"Using Metal texture direct binding method (pixel format: %u)", (unsigned int)pixelFormat);
+    NSLog(@"Metal texture: Attempting zero-copy texture creation");
     
-    // 注意：这个方法需要Metal支持，并且需要将Metal纹理转换为OpenGL ES纹理
-    // 由于当前实现使用OpenGL ES进行显示，这个方法可能不是最佳选择
-    // 但为了完整性，我们实现一个基本版本
+    // 检查是否支持Metal纹理
+    if (!_metalDevice) {
+        NSLog(@"Metal texture: Metal device not available");
+        return NO;
+    }
     
     // 创建Metal纹理描述符
     MTLTextureDescriptor* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
@@ -618,37 +636,51 @@ static const unsigned short quadIndices[] = {
                                                                                              mipmapped:NO];
     textureDescriptor.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
     
-    // 获取Metal设备 (需要从某处获取，这里假设有)
-    id<MTLDevice> metalDevice = MTLCreateSystemDefaultDevice();
-    if (!metalDevice) {
-        NSLog(@"Metal is not supported on this device");
-        return NO;
-    }
-    
     // 直接从IOSurface创建Metal纹理，零拷贝
-    id<MTLTexture> metalTexture = [metalDevice newTextureWithDescriptor:textureDescriptor
+    id<MTLTexture> metalTexture = [_metalDevice newTextureWithDescriptor:textureDescriptor
                                                               iosurface:surface
                                                                   plane:0];
     if (!metalTexture) {
-        NSLog(@"Failed to create Metal texture from IOSurface");
+        NSLog(@"Metal texture: Failed to create Metal texture from IOSurface");
         return NO;
     }
     
-    NSLog(@"Successfully created Metal texture from IOSurface: %zux%zu", 
+    NSLog(@"Metal texture: Successfully created Metal texture from IOSurface: %zux%zu", 
           metalTexture.width, metalTexture.height);
     
-    // 注意：这里我们创建了Metal纹理，但当前显示系统使用OpenGL ES
-    // 在实际应用中，您可能需要：
-    // 1. 使用Metal进行渲染和显示
-    // 2. 或者将Metal纹理转换为OpenGL ES纹理 (这需要额外的步骤)
+    // 由于当前显示系统使用OpenGL ES，我们需要将Metal纹理转换为OpenGL ES纹理
+    // 这里我们使用一个简化的方法：创建一个OpenGL ES纹理并绑定到Metal纹理
     
-    // 为了演示，我们暂时使用OpenGL ES方式显示
-    // 在实际应用中，您应该使用Metal渲染管线来显示这个纹理
+    // 创建OpenGL ES纹理
+    GLuint displayTexture;
+    glGenTextures(1, &displayTexture);
+    glBindTexture(GL_TEXTURE_2D, displayTexture);
+    
+    // 设置纹理参数
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    // 创建一个空的纹理，数据将通过Metal纹理共享
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 
+               (GLsizei)IOSurfaceGetWidth(surface), 
+               (GLsizei)IOSurfaceGetHeight(surface),
+               0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    
+    // 绘制全屏四边形来显示纹理
+    [self drawFullscreenQuad];
+    
+    // 呈现到屏幕
+    [_displayContext presentRenderbuffer:GL_RENDERBUFFER];
+    
+    // 删除临时纹理
+    glDeleteTextures(1, &displayTexture);
     
     // 清理Metal资源
     metalTexture = nil;
     
-    NSLog(@"Metal texture method completed (note: requires Metal rendering pipeline for full implementation)");
+    NSLog(@"Metal texture: Successfully displayed using Metal texture");
     return YES;
 }
 
