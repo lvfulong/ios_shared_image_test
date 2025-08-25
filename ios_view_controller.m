@@ -323,9 +323,6 @@ static const unsigned short quadIndices[] = {
             id<MTLLibrary> library = [_metalDevice newLibraryWithSource:vertexShaderSource options:nil error:&error];
             if (!library) {
                 NSLog(@"Metal: Failed to create library: %@", error);
-                [renderEncoder endEncoding];
-                [commandBuffer presentDrawable:drawable];
-                [commandBuffer commit];
                 return;
             }
             
@@ -340,9 +337,6 @@ static const unsigned short quadIndices[] = {
             pipelineState = [_metalDevice newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
             if (!pipelineState) {
                 NSLog(@"Metal: Failed to create pipeline state: %@", error);
-                [renderEncoder endEncoding];
-                [commandBuffer presentDrawable:drawable];
-                [commandBuffer commit];
                 return;
             }
         }
