@@ -484,7 +484,7 @@ static const unsigned short quadIndices[] = {
                                 "    return out;\n"
                                 "}\n"
                                 "fragment float4 fragment_main() {\n"
-                                "    return float4(1.0, 1.0, 0.0, 1.0); // 纯黄色\n"
+                                "    return float4(1.0, 0.0, 0.0, 1.0); // 纯红色\n"
                                 "}\n";
         
         NSError* error = nil;
@@ -512,7 +512,7 @@ static const unsigned short quadIndices[] = {
     if (testPipelineState) {
         [renderEncoder setRenderPipelineState:testPipelineState];
         [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
-        NSLog(@"Drew test YELLOW FULLSCREEN with Metal");
+        NSLog(@"Drew test RED FULLSCREEN with Metal");
     }
     
     [renderEncoder endEncoding];
