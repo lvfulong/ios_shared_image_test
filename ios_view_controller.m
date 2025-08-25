@@ -102,35 +102,35 @@ static const unsigned short quadIndices[] = {
 }
 
 - (void)createMetalDisplayLayer {
-    // 创建普通CALayer来测试层系统
-    CALayer* testLayer = [CALayer layer];
-    testLayer.frame = self.view.bounds;
-    testLayer.backgroundColor = [UIColor greenColor].CGColor;
-    testLayer.opacity = 1.0;
-    testLayer.hidden = NO;
-    testLayer.zPosition = 9999.0;
+    // 创建Metal层
+    CAMetalLayer* metalLayer = [CAMetalLayer layer];
+    metalLayer.frame = self.view.bounds;
+    metalLayer.device = _metalDevice;
+    metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    metalLayer.framebufferOnly = NO; // 允许CPU访问，更容易调试
+    metalLayer.opaque = YES; // 设置为不透明，确保背景色显示
+    metalLayer.drawableSize = self.view.bounds.size; // 设置绘制大小
     
-    [self.view.layer addSublayer:testLayer];
-    NSLog(@"Added test CALayer with green background");
+    // 确保Metal层完全可见
+    metalLayer.opacity = 1.0; // 完全不透明
+    metalLayer.hidden = NO;
+    metalLayer.zPosition = 9999.0; // 确保在最前面
     
-    // 创建Metal层（暂时注释掉）
-    // CAMetalLayer* metalLayer = [CAMetalLayer layer];
-    // metalLayer.frame = self.view.bounds;
-    // metalLayer.device = _metalDevice;
-    // metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    // metalLayer.framebufferOnly = NO;
-    // metalLayer.opaque = YES;
-    // metalLayer.drawableSize = self.view.bounds.size;
+    // 设置背景色为明显的颜色，便于调试
+    metalLayer.backgroundColor = [UIColor orangeColor].CGColor; // 橙色，更容易区分
     
-    // 测试层已经添加，现在测试层系统是否工作
-    NSLog(@"Test layer frame: %@, bounds: %@, zPosition: %f, opacity: %f", 
-          NSStringFromCGRect(testLayer.frame), 
+    [self.view.layer addSublayer:metalLayer];
+    NSLog(@"Added CAMetalLayer with orange background");
+    
+    // Metal层已经添加，现在测试层系统是否工作
+    NSLog(@"Metal layer frame: %@, bounds: %@, zPosition: %f, opacity: %f", 
+          NSStringFromCGRect(metalLayer.frame), 
           NSStringFromCGRect(self.view.bounds),
-          testLayer.zPosition,
-          testLayer.opacity);
+          metalLayer.zPosition,
+          metalLayer.opacity);
     
-    // 保存测试层引用（暂时）
-    _metalLayer = nil; // 暂时不保存Metal层
+    // 保存Metal层引用
+    _metalLayer = metalLayer;
     
     // 移除测试视图，只保留Metal层
     NSLog(@"Metal layer created without test view overlay");
