@@ -94,9 +94,9 @@ static const unsigned short quadIndices[] = {
         return;
     }
     
-    // 重新启用Metal显示层
-    [self createMetalDisplayLayer];
-    NSLog(@"Created Metal display layer");
+    // 暂时禁用Metal显示层，只测试UIKit视图
+    // [self createMetalDisplayLayer];
+    // NSLog(@"Created Metal display layer");
     
     NSLog(@"Complete zero-copy rendering system initialized successfully");
 }
@@ -125,13 +125,13 @@ static const unsigned short quadIndices[] = {
     metalLayer.opaque = YES;
     metalLayer.drawableSize = self.view.bounds.size;
     
-    // 确保Metal层完全可见
-    metalLayer.opacity = 1.0;
+    // 确保Metal层半透明，让UIKit视图可见
+    metalLayer.opacity = 0.5; // 半透明
     metalLayer.hidden = NO;
     metalLayer.zPosition = 9999.0;
     
-    // 设置背景色为明显的颜色，便于调试
-    metalLayer.backgroundColor = [UIColor orangeColor].CGColor;
+    // 设置背景色为透明，让渲染内容可见
+    metalLayer.backgroundColor = [UIColor clearColor].CGColor;
     
     [self.view.layer addSublayer:metalLayer];
     NSLog(@"Added CAMetalLayer with orange background");
