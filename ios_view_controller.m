@@ -82,7 +82,10 @@ static const unsigned short quadIndices[] = {
     
     // 确保Metal层在最前面
     if (_metalLayer) {
-        [self.view.layer bringSublayerToFront:_metalLayer];
+        // 移除并重新添加以确保在最前面
+        [_metalLayer removeFromSuperlayer];
+        [self.view.layer addSublayer:_metalLayer];
+        NSLog(@"Metal layer brought to front");
     }
     
     NSLog(@"Added test view with frame: %@", NSStringFromCGRect(testView.frame));
