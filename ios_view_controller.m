@@ -63,9 +63,16 @@ static const unsigned short quadIndices[] = {
     largeTestView.backgroundColor = [UIColor yellowColor];
     [self.view addSubview:largeTestView];
 
+    // 添加一个全屏的测试视图来显示渲染内容
+    UIView* renderView = [[UIView alloc] initWithFrame:self.view.bounds];
+    renderView.backgroundColor = [UIColor greenColor];
+    renderView.alpha = 0.8; // 半透明
+    [self.view addSubview:renderView];
+
     // 确保测试视图在最前面
     [self.view bringSubviewToFront:largeTestView];
     [self.view bringSubviewToFront:testView];
+    [self.view bringSubviewToFront:renderView];
     
     NSLog(@"Added test view with frame: %@", NSStringFromCGRect(testView.frame));
     
@@ -321,6 +328,16 @@ static const unsigned short quadIndices[] = {
         // 强制刷新EAGL层
         [_eaglLayer setNeedsDisplay];
         [self.view.layer setNeedsDisplay];
+        
+        // 使用UIKit显示一个明显的测试视图
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIView* testOverlay = [[UIView alloc] initWithFrame:CGRectMake(100, 100, 300, 200)];
+            testOverlay.backgroundColor = [UIColor purpleColor];
+            testOverlay.layer.cornerRadius = 20;
+            [self.view addSubview:testOverlay];
+            [self.view bringSubviewToFront:testOverlay];
+            NSLog(@"Added purple test overlay view");
+        });
         
         hasDrawnTest = YES;
     }
