@@ -53,12 +53,18 @@ static const unsigned short quadIndices[] = {
     // 设置视图背景色为明显的颜色
     self.view.backgroundColor = [UIColor blueColor]; // 蓝色背景，容易看到
     
-    // 添加一个简单的UIView来测试视图是否可见
+        // 添加一个简单的UIView来测试视图是否可见
     UIView* testView = [[UIView alloc] initWithFrame:CGRectMake(50, 50, 100, 100)];
     testView.backgroundColor = [UIColor redColor];
     [self.view addSubview:testView];
-    
-    // 确保EAGL层在最前面
+
+    // 添加一个更大的测试视图
+    UIView* largeTestView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 200, 200)];
+    largeTestView.backgroundColor = [UIColor yellowColor];
+    [self.view addSubview:largeTestView];
+
+    // 确保测试视图在最前面
+    [self.view bringSubviewToFront:largeTestView];
     [self.view bringSubviewToFront:testView];
     
     NSLog(@"Added test view with frame: %@", NSStringFromCGRect(testView.frame));
@@ -155,6 +161,12 @@ static const unsigned short quadIndices[] = {
     
     // 将渲染缓冲区附加到帧缓冲区
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderbuffer);
+    
+    // 验证渲染缓冲区绑定
+    GLint renderbufferWidth, renderbufferHeight;
+    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &renderbufferWidth);
+    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &renderbufferHeight);
+    NSLog(@"Renderbuffer size: %dx%d", renderbufferWidth, renderbufferHeight);
     
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         NSLog(@"Display framebuffer is not complete");
@@ -305,6 +317,10 @@ static const unsigned short quadIndices[] = {
         glFinish();
         [_displayContext presentRenderbuffer:GL_RENDERBUFFER];
         NSLog(@"Presented bright green background");
+        
+        // 强制刷新EAGL层
+        [_eaglLayer setNeedsDisplay];
+        [self.view.layer setNeedsDisplay];
         
         hasDrawnTest = YES;
     }
