@@ -558,13 +558,15 @@ static const unsigned short quadIndices[] = {
                                           "    return out;\n"
                                           "}\n";
             
-            // 创建简单的片段着色器
+            // 创建简单的片段着色器 - 显示彩色图案来测试
             NSString* fragmentShaderSource = @"#include <metal_stdlib>\n"
                                             "using namespace metal;\n"
                                             "fragment float4 fragment_main(float2 texCoord [[stage_in]],\n"
                                             "                                   texture2d<float> texture [[texture(0)]]) {\n"
-                                            "    constexpr sampler textureSampler(mag_filter::linear, min_filter::linear);\n"
-                                            "    return texture.sample(textureSampler, texCoord);\n"
+                                            "    // 显示彩色图案来测试Metal渲染\n"
+                                            "    float2 uv = texCoord;\n"
+                                            "    float3 color = float3(uv.x, uv.y, 0.5);\n"
+                                            "    return float4(color, 1.0);\n"
                                             "}\n";
             
             NSError* error = nil;
@@ -608,6 +610,9 @@ static const unsigned short quadIndices[] = {
         
         // 添加调试：绘制一个明显的彩色矩形
         NSLog(@"Metal: Drawing texture with size: %dx%d", (int)IOSurfaceGetWidth(surface), (int)IOSurfaceGetHeight(surface));
+        
+        // 测试：绘制一个明显的彩色矩形来确认Metal渲染工作
+        NSLog(@"Metal: Testing with colored rectangle");
         
         NSLog(@"Metal: Rendered texture to screen");
         
