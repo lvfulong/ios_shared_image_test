@@ -196,8 +196,8 @@ static const unsigned short quadIndices[] = {
     [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
     NSLog(@"Created CADisplayLink for Metal display");
     
-    // 立即测试Metal渲染，确保Metal层有内容显示
-   // [self testMetalRendering];
+        // 立即测试Metal渲染，确保Metal层有内容显示
+    [self testMetalRendering];
     
     NSLog(@"Complete zero-copy rendering system started successfully");
 }
@@ -475,7 +475,7 @@ static const unsigned short quadIndices[] = {
                                 "    return out;\n"
                                 "}\n"
                                 "fragment float4 fragment_main() {\n"
-                                "    return float4(1.0, 0.0, 0.0, 1.0); // 纯红色\n"
+                                "    return float4(0.0, 1.0, 0.0, 1.0); // 纯绿色\n"
                                 "}\n";
         
         NSError* error = nil;
