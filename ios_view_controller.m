@@ -143,6 +143,15 @@ static const unsigned short quadIndices[] = {
     // 保存Metal层引用
     _metalLayer = metalLayer;
     
+    // 添加一个测试视图来模拟Metal层的位置和可见性
+    UIView* metalTestView = [[UIView alloc] initWithFrame:self.view.bounds];
+    metalTestView.backgroundColor = [UIColor purpleColor];
+    metalTestView.alpha = 0.7;
+    metalTestView.tag = 999; // 用于标识
+    [self.view addSubview:metalTestView];
+    [self.view bringSubviewToFront:metalTestView];
+    NSLog(@"Added purple test view to simulate Metal layer visibility");
+    
     NSLog(@"Created Metal display layer as overlay");
 }
 
