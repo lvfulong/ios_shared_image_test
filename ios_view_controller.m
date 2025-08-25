@@ -220,6 +220,8 @@ static const unsigned short quadIndices[] = {
     // 检查是否有新的渲染结果
     BOOL hasNewResult = [_mainRenderer hasNewRenderResult];
     if (hasNewResult) {
+        NSLog(@"Displaying new render result");
+        
         // 获取当前的IOSurface
         IOSurfaceRef surface = [_mainRenderer getCurrentSurface];
         if (surface) {
@@ -236,7 +238,7 @@ static const unsigned short quadIndices[] = {
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
             
-                        // 从IOSurface创建纹理 - 两种零拷贝方式
+            // 从IOSurface创建纹理 - 两种零拷贝方式
             // 获取IOSurface的实际像素格式
             OSType pixelFormat = IOSurfaceGetPixelFormat(surface);
             NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
@@ -279,7 +281,11 @@ static const unsigned short quadIndices[] = {
             
             // 释放IOSurface引用
             CFRelease(surface);
+        } else {
+            NSLog(@"No surface available for display");
         }
+    } else {
+        NSLog(@"No new render result available");
     }
 }
 
@@ -358,6 +364,14 @@ static const unsigned short quadIndices[] = {
     GLint texAttrib = glGetAttribLocation(_displayProgram, "texCoord");
     glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(texAttrib);
+    
+    // 绑定纹理到纹理单元0
+    glActiveTexture(GL_TEXTURE0);
+    // 注意：纹理应该已经在调用drawFullscreenQuad之前被绑定到GL_TEXTURE_2D
+    
+    // 设置纹理采样器
+    GLint textureUniform = glGetUniformLocation(_displayProgram, "texture");
+    glUniform1i(textureUniform, 0); // 使用纹理单元0
     
     // 绘制四边形
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
@@ -647,8 +661,8 @@ static const unsigned short quadIndices[] = {
     NSLog(@"Metal texture: Successfully created Metal texture from IOSurface: %zux%zu", 
           metalTexture.width, metalTexture.height);
     
-    // 由于当前显示系统使用OpenGL ES，我们需要将Metal纹理转换为OpenGL ES纹理
-    // 这里我们使用一个简化的方法：创建一个OpenGL ES纹理并绑定到Metal纹理
+    // 由于当前显示系统使用OpenGL ES，我们需要将IOSurface数据复制到OpenGL ES纹理
+    // 这是为了显示目的，虽然不是真正的零拷贝，但Metal纹理已经实现了零拷贝渲染
     
     // 创建OpenGL ES纹理
     GLuint displayTexture;
@@ -661,11 +675,21 @@ static const unsigned short quadIndices[] = {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     
-    // 创建一个空的纹理，数据将通过Metal纹理共享
+    // 锁定IOSurface并获取数据指针
+    IOSurfaceLock(surface, kIOSurfaceLockReadOnly, NULL);
+    void* surfaceData = IOSurfaceGetBaseAddress(surface);
+    size_t bytesPerRow = IOSurfaceGetBytesPerRow(surface);
+    size_t width = IOSurfaceGetWidth(surface);
+    size_t height = IOSurfaceGetHeight(surface);
+    
+    // 将IOSurface数据复制到OpenGL ES纹理
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 
-               (GLsizei)IOSurfaceGetWidth(surface), 
-               (GLsizei)IOSurfaceGetHeight(surface),
-               0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+               (GLsizei)width, 
+               (GLsizei)height,
+               0, GL_RGBA, GL_UNSIGNED_BYTE, surfaceData);
+    
+    // 解锁IOSurface
+    IOSurfaceUnlock(surface, kIOSurfaceLockReadOnly, NULL);
     
     // 绘制全屏四边形来显示纹理
     [self drawFullscreenQuad];
@@ -718,6 +742,28 @@ static const unsigned short quadIndices[] = {
         NSLog(@"Successfully displayed using copy method");
     } else {
         NSLog(@"Failed to get IOSurface pixel data for copy method");
+        
+        // 创建一个简单的测试纹理来验证显示是否工作
+        NSLog(@"Creating test texture to verify display functionality");
+        
+        // 创建一个简单的彩色测试纹理
+        unsigned char testData[512 * 512 * 4];
+        for (int i = 0; i < 512 * 512; i++) {
+            testData[i * 4 + 0] = 255; // 红色
+            testData[i * 4 + 1] = 0;   // 绿色
+            testData[i * 4 + 2] = 0;   // 蓝色
+            testData[i * 4 + 3] = 255; // 透明度
+        }
+        
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, testData);
+        
+        // 绘制全屏四边形来显示纹理
+        [self drawFullscreenQuad];
+        
+        // 呈现到屏幕
+        [_displayContext presentRenderbuffer:GL_RENDERBUFFER];
+        
+        NSLog(@"Test texture displayed successfully");
     }
     
     // 解锁IOSurface
