@@ -102,13 +102,25 @@ static const unsigned short quadIndices[] = {
 }
 
 - (void)createMetalDisplayLayer {
-    // 创建Metal层
-    CAMetalLayer* metalLayer = [CAMetalLayer layer];
-    metalLayer.frame = self.view.bounds;
-    metalLayer.device = _metalDevice;
-    metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    metalLayer.framebufferOnly = NO; // 允许CPU访问，更容易调试
-    metalLayer.opaque = NO; // 允许透明度，更容易看到
+    // 创建普通CALayer来测试层系统
+    CALayer* testLayer = [CALayer layer];
+    testLayer.frame = self.view.bounds;
+    testLayer.backgroundColor = [UIColor greenColor].CGColor;
+    testLayer.opacity = 1.0;
+    testLayer.hidden = NO;
+    testLayer.zPosition = 9999.0;
+    
+    [self.view.layer addSublayer:testLayer];
+    NSLog(@"Added test CALayer with green background");
+    
+    // 创建Metal层（暂时注释掉）
+    // CAMetalLayer* metalLayer = [CAMetalLayer layer];
+    // metalLayer.frame = self.view.bounds;
+    // metalLayer.device = _metalDevice;
+    // metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    // metalLayer.framebufferOnly = NO;
+    // metalLayer.opaque = YES;
+    // metalLayer.drawableSize = self.view.bounds.size;
     
     // 确保Metal层完全可见
     metalLayer.opacity = 1.0; // 完全不透明
