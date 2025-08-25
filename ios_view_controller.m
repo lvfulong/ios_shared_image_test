@@ -129,8 +129,8 @@ static const unsigned short quadIndices[] = {
     metalLayer.hidden = NO;
     metalLayer.zPosition = 1000.0; // 在UIKit视图之上，但不是最高
     
-    // 设置背景色为透明
-    metalLayer.backgroundColor = [UIColor clearColor].CGColor;
+    // 设置背景色为明显的颜色，便于调试
+    metalLayer.backgroundColor = [UIColor purpleColor].CGColor;
     
     [self.view.layer addSublayer:metalLayer];
     
@@ -273,18 +273,18 @@ static const unsigned short quadIndices[] = {
     
     NSLog(@"View will appear - starting complete zero-copy rendering system");
     
-    // 暂时禁用渲染循环，只测试UIKit视图
-    // [_mainRenderer startRendering];
-    // NSLog(@"Started IOSurface-based rendering in view controller");
+    // 重新启用渲染循环
+    [_mainRenderer startRendering];
+    NSLog(@"Started IOSurface-based rendering in view controller");
     
-    // 暂时禁用CADisplayLink
-    // _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateDisplay:)];
-    // _displayLink.preferredFramesPerSecond = 30;
-    // [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
-    // NSLog(@"Created CADisplayLink for Metal display");
+    // 重新启用CADisplayLink
+    _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateDisplay:)];
+    _displayLink.preferredFramesPerSecond = 30;
+    [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+    NSLog(@"Created CADisplayLink for Metal display");
     
-    // 暂时禁用Metal测试渲染
-    // [self testMetalRendering];
+    // 立即测试Metal渲染，确保Metal层有内容显示
+    [self testMetalRendering];
     
     NSLog(@"Complete zero-copy rendering system started successfully");
 }
