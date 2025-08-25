@@ -698,7 +698,7 @@ static const unsigned short quadIndices[] = {
     MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.2, 0.2, 0.2, 1.0); // 深灰色背景
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0); // 黑色背景
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
     
     // 创建命令缓冲区
@@ -713,7 +713,7 @@ static const unsigned short quadIndices[] = {
     // 创建一个简单的彩色渲染管道
     static id<MTLRenderPipelineState> testPipelineState = nil;
     if (!testPipelineState) {
-                NSString* shaderSource = @"#include <metal_stdlib>\n"
+        NSString* shaderSource = @"#include <metal_stdlib>\n"
                                 "using namespace metal;\n"
                                 "struct VertexOut {\n"
                                 "    float4 position [[position]];\n"
@@ -730,7 +730,7 @@ static const unsigned short quadIndices[] = {
                                 "    return out;\n"
                                 "}\n"
                                 "fragment float4 fragment_main() {\n"
-                                "    return float4(0.0, 1.0, 0.0, 1.0); // 纯绿色\n"
+                                "    return float4(1.0, 1.0, 0.0, 1.0); // 纯黄色\n"
                                 "}\n";
         
         NSError* error = nil;
