@@ -94,9 +94,9 @@ static const unsigned short quadIndices[] = {
         return;
     }
     
-    // 重新启用Metal显示层
-    [self createMetalDisplayLayer];
-    NSLog(@"Created Metal display layer");
+    // 暂时禁用Metal显示层，只测试UIKit视图
+    // [self createMetalDisplayLayer];
+    // NSLog(@"Created Metal display layer");
     
     NSLog(@"Complete zero-copy rendering system initialized successfully");
 }
@@ -517,8 +517,8 @@ static const unsigned short quadIndices[] = {
         NSLog(@"Metal: Setting render pipeline state");
         [renderEncoder setRenderPipelineState:testPipelineState];
         
-        NSLog(@"Metal: Drawing primitives - TriangleStrip, 4 vertices");
-        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+        NSLog(@"Metal: Drawing primitives - Triangle, 6 vertices");
+        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
         NSLog(@"Drew test RED FULLSCREEN with Metal");
     } else {
         NSLog(@"Metal: testPipelineState is nil - rendering pipeline not created");
