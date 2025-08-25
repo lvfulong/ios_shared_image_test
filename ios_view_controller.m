@@ -742,7 +742,7 @@ static const unsigned short quadIndices[] = {
             MTLRenderPipelineDescriptor* pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
             pipelineDescriptor.vertexFunction = vertexFunction;
             pipelineDescriptor.fragmentFunction = fragmentFunction;
-            pipelineDescriptor.colorAttachments[0].pixelFormat = drawable.texture.pixelFormat;
+            pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm; // 使用固定格式
             
             testPipelineState = [_metalDevice newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
             if (testPipelineState) {
@@ -758,7 +758,7 @@ static const unsigned short quadIndices[] = {
     if (testPipelineState) {
         [renderEncoder setRenderPipelineState:testPipelineState];
         [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
-        NSLog(@"Drew test RED FULLSCREEN with Metal");
+        NSLog(@"Drew test YELLOW FULLSCREEN with Metal");
     }
     
     [renderEncoder endEncoding];
