@@ -76,8 +76,43 @@ static const unsigned short quadIndices[] = {
     
     NSLog(@"View hierarchy setup completed");
     
-    // 暂时禁用复杂的Metal渲染，只测试基本视图显示
-    NSLog(@"Skipping Metal setup for now, testing basic view display");
+    // 初始化Metal设备
+    _metalDevice = MTLCreateSystemDefaultDevice();
+    if (!_metalDevice) {
+        NSLog(@"Metal is not supported on this device");
+        return;
+    }
+    
+    // 创建Metal命令队列
+    _commandQueue = [_metalDevice newCommandQueue];
+    if (!_commandQueue) {
+        NSLog(@"Failed to create Metal command queue");
+        return;
+    }
+    
+    // 设置零拷贝方式选择
+    _zeroCopyMethod = ZeroCopyMethodMetalTexture;
+    
+    // 创建IOSurface用于渲染
+    if (![self createIOSurface]) {
+        NSLog(@"Failed to create IOSurface");
+        return;
+    }
+    
+    // 创建主渲染器
+    _mainRenderer = [[IOSMainRenderer alloc] initWithSurface:_ioSurface];
+    
+    // 初始化渲染器
+    if (![_mainRenderer initialize]) {
+        NSLog(@"Failed to initialize main renderer");
+        return;
+    }
+    
+    // 创建Metal显示层来显示渲染结果
+    [self createMetalDisplayLayer];
+    NSLog(@"Created Metal display layer");
+    
+    NSLog(@"Complete zero-copy rendering system initialized successfully");
 }
 
 - (void)createMetalDisplayLayer {
@@ -89,25 +124,26 @@ static const unsigned short quadIndices[] = {
     metalLayer.framebufferOnly = NO; // 允许CPU访问，更容易调试
     metalLayer.opaque = NO; // 允许透明度，更容易看到
     
-    // 确保Metal层可见且在最前面
-    metalLayer.opacity = 1.0;
+    // 确保Metal层可见且在最前面，但允许UIKit视图透过
+    metalLayer.opacity = 0.8; // 稍微透明，让UIKit视图可见
     metalLayer.hidden = NO;
-    metalLayer.zPosition = 9999.0; // 确保在最前面
+    metalLayer.zPosition = 1000.0; // 在UIKit视图之上，但不是最高
     
-    // 移除调试背景色，让渲染内容更清晰
+    // 设置背景色为透明
     metalLayer.backgroundColor = [UIColor clearColor].CGColor;
     
     [self.view.layer addSublayer:metalLayer];
     
-    NSLog(@"Metal layer frame: %@, bounds: %@, zPosition: %f", 
+    NSLog(@"Metal layer frame: %@, bounds: %@, zPosition: %f, opacity: %f", 
           NSStringFromCGRect(metalLayer.frame), 
           NSStringFromCGRect(self.view.bounds),
-          metalLayer.zPosition);
+          metalLayer.zPosition,
+          metalLayer.opacity);
     
     // 保存Metal层引用
     _metalLayer = metalLayer;
     
-    NSLog(@"Created Metal display layer with debug background");
+    NSLog(@"Created Metal display layer as overlay");
 }
 
 - (void)createDisplayLayer {
@@ -235,21 +271,22 @@ static const unsigned short quadIndices[] = {
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     
-    NSLog(@"View will appear - basic view display test");
+    NSLog(@"View will appear - starting complete zero-copy rendering system");
     
-    // 添加一个动画来确认视图是可见的
-    UIView* animatedView = [[UIView alloc] initWithFrame:CGRectMake(200, 200, 50, 50)];
-    animatedView.backgroundColor = [UIColor purpleColor];
-    [self.view addSubview:animatedView];
-    [self.view bringSubviewToFront:animatedView];
+    // 开始渲染
+    [_mainRenderer startRendering];
+    NSLog(@"Started IOSurface-based rendering in view controller");
     
-    // 添加一个简单的动画
-    [UIView animateWithDuration:2.0 delay:1.0 options:UIViewAnimationOptionRepeat animations:^{
-        animatedView.transform = CGAffineTransformMakeScale(2.0, 2.0);
-        animatedView.backgroundColor = [UIColor orangeColor];
-    } completion:nil];
+    // 创建CADisplayLink来同步显示刷新率
+    _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateDisplay:)];
+    _displayLink.preferredFramesPerSecond = 30; // 降低到30 FPS减少闪烁
+    [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+    NSLog(@"Created CADisplayLink for Metal display");
     
-    NSLog(@"Added animated purple view with scaling animation");
+    // 立即测试Metal渲染
+    [self testMetalRendering];
+    
+    NSLog(@"Complete zero-copy rendering system started successfully");
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
