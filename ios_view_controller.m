@@ -125,8 +125,8 @@ static const unsigned short quadIndices[] = {
     metalLayer.opaque = YES;
     metalLayer.drawableSize = self.view.bounds.size;
     
-    // 确保Metal层完全不透明，让渲染内容可见
-    metalLayer.opacity = 1.0; // 完全不透明
+    // 确保Metal层半透明，让UIKit视图和渲染内容都可见
+    metalLayer.opacity = 0.8; // 半透明
     metalLayer.hidden = NO;
     metalLayer.zPosition = 9999.0;
     
@@ -698,7 +698,7 @@ static const unsigned short quadIndices[] = {
     MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0); // 黑色背景
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.3, 0.3, 0.3, 1.0); // 中等灰色背景
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
     
     // 创建命令缓冲区
