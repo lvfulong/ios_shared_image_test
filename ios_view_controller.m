@@ -360,17 +360,7 @@ static const unsigned short quadIndices[] = {
         
         NSLog(@"Metal: Rendered texture to screen");
         
-        // 结束渲染编码
-        [renderEncoder endEncoding];
-        
-        // 呈现可绘制对象
-        [commandBuffer presentDrawable:drawable];
-        
-        // 提交命令缓冲区
-        [commandBuffer commit];
-        
-        // 强制刷新显示
-        [CATransaction flush];
+        NSLog(@"Metal: Rendered texture to screen");
     } else {
         NSLog(@"Metal: Failed to create texture from IOSurface");
         
@@ -422,8 +412,13 @@ static const unsigned short quadIndices[] = {
         }
     }
     
+    // 结束渲染编码（只调用一次）
     [renderEncoder endEncoding];
+    
+    // 呈现可绘制对象
     [commandBuffer presentDrawable:drawable];
+    
+    // 提交命令缓冲区
     [commandBuffer commit];
     
     NSLog(@"Metal: Successfully displayed IOSurface with Metal");
