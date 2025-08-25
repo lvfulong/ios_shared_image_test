@@ -130,7 +130,7 @@ static const unsigned short quadIndices[] = {
     // 确保EAGL层可见且在最前面
     eaglLayer.opacity = 1.0;
     eaglLayer.hidden = NO;
-    eaglLayer.zPosition = 1.0; // 确保EAGL层在最前面
+    eaglLayer.zPosition = 1000.0; // 确保EAGL层在最前面，使用更大的值
     
     NSLog(@"EAGL layer frame: %@, bounds: %@", 
           NSStringFromCGRect(eaglLayer.frame), 
@@ -276,13 +276,16 @@ static const unsigned short quadIndices[] = {
             OSType pixelFormat = IOSurfaceGetPixelFormat(surface);
             NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
             
-            // 先测试基本显示是否工作（只测试一次）
-            static BOOL hasTestedDisplay = NO;
-            if (!hasTestedDisplay) {
-                NSLog(@"Testing basic display functionality");
-                [self testBasicDisplay];
-                hasTestedDisplay = YES;
-            }
+                // 持续测试基本显示是否工作
+    static BOOL hasTestedDisplay = NO;
+    if (!hasTestedDisplay) {
+        NSLog(@"Testing basic display functionality");
+        [self testBasicDisplay];
+        hasTestedDisplay = YES;
+    }
+    
+    // 每帧都绘制一个简单的测试图案
+    [self drawTestPattern];
             
             BOOL success = NO;
             
@@ -420,7 +423,7 @@ static const unsigned short quadIndices[] = {
         const char* fragmentShaderSource = R"(
             precision mediump float;
             void main() {
-                gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0); // 黄色，更容易看到
+                gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0); // 洋红色，非常明显
             }
         )";
         
@@ -486,6 +489,45 @@ static const unsigned short quadIndices[] = {
     }
     
     NSLog(@"Basic display test completed");
+}
+
+- (void)drawTestPattern {
+    // 设置当前上下文
+    [EAGLContext setCurrentContext:_displayContext];
+    
+    // 绑定显示帧缓冲区
+    glBindFramebuffer(GL_FRAMEBUFFER, _displayFramebuffer);
+    
+    // 设置视口
+    CGSize layerSize = _eaglLayer.bounds.size;
+    glViewport(0, 0, (GLsizei)layerSize.width, (GLsizei)layerSize.height);
+    
+    // 清除背景为深蓝色
+    glClearColor(0.0f, 0.0f, 0.5f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    // 使用测试着色器程序
+    glUseProgram(_displayProgram);
+    
+    // 绘制一个简单的彩色矩形
+    glBindBuffer(GL_ARRAY_BUFFER, _displayVBO);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    
+    // 绘制矩形
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    
+    // 强制刷新
+    glFinish();
+    
+    // 呈现到屏幕
+    [_displayContext presentRenderbuffer:GL_RENDERBUFFER];
+    
+    // 检查OpenGL ES状态
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR) {
+        NSLog(@"OpenGL ES error in drawTestPattern: 0x%x", error);
+    }
 }
 
 - (void)drawFullscreenQuad {
