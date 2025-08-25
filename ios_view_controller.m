@@ -502,7 +502,7 @@ static const unsigned short quadIndices[] = {
     MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.2, 0.2, 0.2, 1.0); // 深灰色背景，让渲染内容更明显
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.1, 0.1, 0.1, 1.0); // 更深的灰色背景，让渲染内容更明显
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
     
     // 创建命令缓冲区
