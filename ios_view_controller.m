@@ -122,29 +122,15 @@ static const unsigned short quadIndices[] = {
     // metalLayer.opaque = YES;
     // metalLayer.drawableSize = self.view.bounds.size;
     
-    // 确保Metal层完全可见
-    metalLayer.opacity = 1.0; // 完全不透明
-    metalLayer.hidden = NO;
-    metalLayer.zPosition = 9999.0; // 确保在最前面
-    
-    // 设置背景色为明显的颜色，便于调试
-    metalLayer.backgroundColor = [UIColor greenColor].CGColor; // 绿色，非常明显
-    
-    // 确保Metal层被正确添加
-    [self.view.layer addSublayer:metalLayer];
-    
-    // 强制刷新视图层级
-    [self.view setNeedsLayout];
-    [self.view layoutIfNeeded];
-    
-    NSLog(@"Metal layer frame: %@, bounds: %@, zPosition: %f, opacity: %f", 
-          NSStringFromCGRect(metalLayer.frame), 
+    // 测试层已经添加，现在测试层系统是否工作
+    NSLog(@"Test layer frame: %@, bounds: %@, zPosition: %f, opacity: %f", 
+          NSStringFromCGRect(testLayer.frame), 
           NSStringFromCGRect(self.view.bounds),
-          metalLayer.zPosition,
-          metalLayer.opacity);
+          testLayer.zPosition,
+          testLayer.opacity);
     
-    // 保存Metal层引用
-    _metalLayer = metalLayer;
+    // 保存测试层引用（暂时）
+    _metalLayer = nil; // 暂时不保存Metal层
     
     // 移除测试视图，只保留Metal层
     NSLog(@"Metal layer created without test view overlay");
