@@ -614,6 +614,9 @@ static const unsigned short quadIndices[] = {
         // 测试：绘制一个明显的彩色矩形来确认Metal渲染工作
         NSLog(@"Metal: Testing with colored rectangle");
         
+        // 强制刷新显示
+        [CATransaction flush];
+        
         NSLog(@"Metal: Rendered texture to screen");
         
         // 强制刷新显示
@@ -727,7 +730,7 @@ static const unsigned short quadIndices[] = {
                                 "    return out;\n"
                                 "}\n"
                                 "fragment float4 fragment_main() {\n"
-                                "    return float4(1.0, 0.0, 0.0, 1.0); // 纯红色\n"
+                                "    return float4(0.0, 1.0, 0.0, 1.0); // 纯绿色\n"
                                 "}\n";
         
         NSError* error = nil;
