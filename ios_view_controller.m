@@ -504,7 +504,7 @@ static const unsigned short quadIndices[] = {
             
             testPipelineState = [_metalDevice newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
             if (testPipelineState) {
-                NSLog(@"Created test Metal pipeline state");
+                NSLog(@"Created test Metal pipeline state successfully");
             } else {
                 NSLog(@"Failed to create test pipeline state: %@", error);
             }
@@ -514,9 +514,14 @@ static const unsigned short quadIndices[] = {
     }
     
     if (testPipelineState) {
+        NSLog(@"Metal: Setting render pipeline state");
         [renderEncoder setRenderPipelineState:testPipelineState];
+        
+        NSLog(@"Metal: Drawing primitives - TriangleStrip, 4 vertices");
         [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
         NSLog(@"Drew test RED FULLSCREEN with Metal");
+    } else {
+        NSLog(@"Metal: testPipelineState is nil - rendering pipeline not created");
     }
     
     [renderEncoder endEncoding];
