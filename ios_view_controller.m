@@ -308,24 +308,11 @@ static const unsigned short quadIndices[] = {
                                           "    return out;\n"
                                           "}\n";
             
-            // 创建简单的片段着色器 - 显示明显的彩色图案来测试
+            // 创建简单的片段着色器 - 直接显示纯色来测试
             NSString* fragmentShaderSource = @"#include <metal_stdlib>\n"
                                             "using namespace metal;\n"
-                                            "fragment float4 fragment_main(float2 texCoord [[stage_in]],\n"
-                                            "                                   texture2d<float> texture [[texture(0)]]) {\n"
-                                            "    // 显示明显的彩色图案来测试Metal渲染\n"
-                                            "    float2 uv = texCoord;\n"
-                                            "    float3 color = float3(1.0, 0.0, 0.0); // 纯红色\n"
-                                            "    if (uv.x < 0.5 && uv.y < 0.5) {\n"
-                                            "        color = float3(0.0, 1.0, 0.0); // 绿色\n"
-                                            "    } else if (uv.x >= 0.5 && uv.y < 0.5) {\n"
-                                            "        color = float3(0.0, 0.0, 1.0); // 蓝色\n"
-                                            "    } else if (uv.x < 0.5 && uv.y >= 0.5) {\n"
-                                            "        color = float3(1.0, 1.0, 0.0); // 黄色\n"
-                                            "    } else {\n"
-                                            "        color = float3(1.0, 0.0, 1.0); // 洋红色\n"
-                                            "    }\n"
-                                            "    return float4(color, 1.0);\n"
+                                            "fragment float4 fragment_main() {\n"
+                                            "    return float4(0.0, 1.0, 0.0, 1.0); // 纯绿色\n"
                                             "}\n";
             
             NSError* error = nil;
