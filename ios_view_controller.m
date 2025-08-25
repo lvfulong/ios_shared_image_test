@@ -94,9 +94,9 @@ static const unsigned short quadIndices[] = {
         return;
     }
     
-    // 暂时禁用Metal显示层，只测试UIKit视图
-    // [self createMetalDisplayLayer];
-    // NSLog(@"Created Metal display layer");
+    // 重新启用Metal显示层
+    [self createMetalDisplayLayer];
+    NSLog(@"Created Metal display layer");
     
     NSLog(@"Complete zero-copy rendering system initialized successfully");
 }
@@ -125,8 +125,8 @@ static const unsigned short quadIndices[] = {
     metalLayer.opaque = YES;
     metalLayer.drawableSize = self.view.bounds.size;
     
-    // 确保Metal层半透明，让UIKit视图和渲染内容都可见
-    metalLayer.opacity = 0.8; // 半透明
+    // 确保Metal层完全不透明，让渲染内容可见
+    metalLayer.opacity = 1.0; // 完全不透明
     metalLayer.hidden = NO;
     metalLayer.zPosition = 9999.0;
     
@@ -448,6 +448,10 @@ static const unsigned short quadIndices[] = {
         return;
     }
     
+    NSLog(@"Metal: Got drawable with size: %dx%d, pixelFormat: %lu", 
+          (int)drawable.texture.width, (int)drawable.texture.height, 
+          (unsigned long)drawable.texture.pixelFormat);
+    
     // 创建渲染通道描述符
     MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
@@ -496,7 +500,7 @@ static const unsigned short quadIndices[] = {
             MTLRenderPipelineDescriptor* pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
             pipelineDescriptor.vertexFunction = vertexFunction;
             pipelineDescriptor.fragmentFunction = fragmentFunction;
-            pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm; // 使用固定格式
+            pipelineDescriptor.colorAttachments[0].pixelFormat = drawable.texture.pixelFormat; // 使用drawable的像素格式
             
             testPipelineState = [_metalDevice newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
             if (testPipelineState) {
@@ -511,7 +515,7 @@ static const unsigned short quadIndices[] = {
     
     if (testPipelineState) {
         [renderEncoder setRenderPipelineState:testPipelineState];
-        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
         NSLog(@"Drew test RED FULLSCREEN with Metal");
     }
     
