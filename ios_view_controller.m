@@ -102,35 +102,29 @@ static const unsigned short quadIndices[] = {
 }
 
 - (void)createMetalDisplayLayer {
-    // 创建Metal层
-    CAMetalLayer* metalLayer = [CAMetalLayer layer];
-    metalLayer.frame = self.view.bounds;
-    metalLayer.device = _metalDevice;
-    metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    metalLayer.framebufferOnly = NO; // 允许CPU访问，更容易调试
-    metalLayer.opaque = YES; // 设置为不透明，确保背景色显示
-    metalLayer.drawableSize = self.view.bounds.size; // 设置绘制大小
+    // 暂时使用CALayer来模拟Metal层，确保渲染管道工作
+    CALayer* renderLayer = [CALayer layer];
+    renderLayer.frame = self.view.bounds;
+    renderLayer.backgroundColor = [UIColor blueColor].CGColor; // 蓝色，表示渲染层
+    renderLayer.opacity = 0.8; // 半透明，让UIKit视图可见
+    renderLayer.hidden = NO;
+    renderLayer.zPosition = 9999.0; // 确保在最前面
     
-    // 确保Metal层完全可见
-    metalLayer.opacity = 1.0; // 完全不透明
-    metalLayer.hidden = NO;
-    metalLayer.zPosition = 9999.0; // 确保在最前面
+    [self.view.layer addSublayer:renderLayer];
+    NSLog(@"Added CALayer render layer with blue background");
     
-    // 设置背景色为明显的颜色，便于调试
-    metalLayer.backgroundColor = [UIColor orangeColor].CGColor; // 橙色，更容易区分
+    // 保存渲染层引用（暂时替代Metal层）
+    _metalLayer = nil; // 暂时不使用CAMetalLayer
     
-    [self.view.layer addSublayer:metalLayer];
-    NSLog(@"Added CAMetalLayer with orange background");
-    
-    // Metal层已经添加，现在测试层系统是否工作
-    NSLog(@"Metal layer frame: %@, bounds: %@, zPosition: %f, opacity: %f", 
-          NSStringFromCGRect(metalLayer.frame), 
+    // 渲染层已经添加，现在测试层系统是否工作
+    NSLog(@"Render layer frame: %@, bounds: %@, zPosition: %f, opacity: %f", 
+          NSStringFromCGRect(renderLayer.frame), 
           NSStringFromCGRect(self.view.bounds),
-          metalLayer.zPosition,
-          metalLayer.opacity);
+          renderLayer.zPosition,
+          renderLayer.opacity);
     
-    // 保存Metal层引用
-    _metalLayer = metalLayer;
+    // 保存渲染层引用（暂时）
+    // _metalLayer = renderLayer; // 暂时不保存，因为类型不匹配
     
     // 移除测试视图，只保留Metal层
     NSLog(@"Metal layer created without test view overlay");
