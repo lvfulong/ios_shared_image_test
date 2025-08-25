@@ -58,6 +58,9 @@ static const unsigned short quadIndices[] = {
     testView.backgroundColor = [UIColor redColor];
     [self.view addSubview:testView];
     
+    // 确保EAGL层在最前面
+    [self.view bringSubviewToFront:testView];
+    
     NSLog(@"Added test view with frame: %@", NSStringFromCGRect(testView.frame));
     
     // 初始化Metal设备
@@ -115,9 +118,10 @@ static const unsigned short quadIndices[] = {
     };
     [self.view.layer addSublayer:eaglLayer];
     
-    // 确保EAGL层可见
+    // 确保EAGL层可见且在最前面
     eaglLayer.opacity = 1.0;
     eaglLayer.hidden = NO;
+    eaglLayer.zPosition = 1.0; // 确保EAGL层在最前面
     
     NSLog(@"EAGL layer frame: %@, bounds: %@", 
           NSStringFromCGRect(eaglLayer.frame), 
@@ -213,7 +217,7 @@ static const unsigned short quadIndices[] = {
     
     // 创建CADisplayLink来同步显示刷新率
     _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateDisplay:)];
-    _displayLink.preferredFramesPerSecond = 60; // 60 FPS
+    _displayLink.preferredFramesPerSecond = 30; // 降低到30 FPS减少闪烁
     [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
 }
 
@@ -254,8 +258,8 @@ static const unsigned short quadIndices[] = {
             
             NSLog(@"Setting viewport to: %.0fx%.0f", layerSize.width, layerSize.height);
             
-            // 清除背景 - 使用明显的颜色来测试显示
-            glClearColor(0.0f, 1.0f, 0.0f, 1.0f); // 绿色背景
+            // 清除背景 - 使用稳定的颜色
+            glClearColor(0.2f, 0.2f, 0.2f, 1.0f); // 深灰色背景，更稳定
             glClear(GL_COLOR_BUFFER_BIT);
             
             // 从IOSurface创建纹理 - 两种零拷贝方式
@@ -263,9 +267,13 @@ static const unsigned short quadIndices[] = {
             OSType pixelFormat = IOSurfaceGetPixelFormat(surface);
             NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
             
-            // 先测试基本显示是否工作
-            NSLog(@"Testing basic display functionality");
-            [self testBasicDisplay];
+            // 先测试基本显示是否工作（只测试一次）
+            static BOOL hasTestedDisplay = NO;
+            if (!hasTestedDisplay) {
+                NSLog(@"Testing basic display functionality");
+                [self testBasicDisplay];
+                hasTestedDisplay = YES;
+            }
             
             BOOL success = NO;
             
