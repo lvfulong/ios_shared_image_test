@@ -699,17 +699,18 @@ static const unsigned short quadIndices[] = {
                                 "    float4 position [[position]];\n"
                                 "};\n"
                                 "vertex VertexOut vertex_main(uint vertexID [[vertex_id]]) {\n"
-                                "    float2 positions[3] = {\n"
-                                "        float2( 0.0,  0.8),  // 顶部\n"
-                                "        float2(-0.8, -0.8),  // 左下\n"
-                                "        float2( 0.8, -0.8)   // 右下\n"
+                                "    float2 positions[4] = {\n"
+                                "        float2(-1.0, -1.0),  // 左下\n"
+                                "        float2( 1.0, -1.0),  // 右下\n"
+                                "        float2(-1.0,  1.0),  // 左上\n"
+                                "        float2( 1.0,  1.0)   // 右上\n"
                                 "    };\n"
                                 "    VertexOut out;\n"
                                 "    out.position = float4(positions[vertexID], 0.0, 1.0);\n"
                                 "    return out;\n"
                                 "}\n"
                                 "fragment float4 fragment_main() {\n"
-                                "    return float4(1.0, 1.0, 1.0, 1.0); // 纯白色\n"
+                                "    return float4(1.0, 0.0, 0.0, 1.0); // 纯红色\n"
                                 "}\n";
         
         NSError* error = nil;
@@ -736,8 +737,8 @@ static const unsigned short quadIndices[] = {
     
     if (testPipelineState) {
         [renderEncoder setRenderPipelineState:testPipelineState];
-        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
-        NSLog(@"Drew test colored triangle with Metal");
+        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+        NSLog(@"Drew test RED FULLSCREEN with Metal");
     }
     
     [renderEncoder endEncoding];
