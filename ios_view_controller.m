@@ -125,8 +125,8 @@ static const unsigned short quadIndices[] = {
     metalLayer.opaque = YES;
     metalLayer.drawableSize = self.view.bounds.size;
     
-    // 确保Metal层半透明，让UIKit视图可见
-    metalLayer.opacity = 0.5; // 半透明
+    // 确保Metal层完全不透明，让渲染内容可见
+    metalLayer.opacity = 1.0; // 完全不透明
     metalLayer.hidden = NO;
     metalLayer.zPosition = 9999.0;
     
@@ -134,7 +134,7 @@ static const unsigned short quadIndices[] = {
     metalLayer.backgroundColor = [UIColor clearColor].CGColor;
     
     [self.view.layer addSublayer:metalLayer];
-    NSLog(@"Added CAMetalLayer with orange background");
+    NSLog(@"Added CAMetalLayer with transparent background");
     
     // 保存Metal层引用
     _metalLayer = metalLayer;
