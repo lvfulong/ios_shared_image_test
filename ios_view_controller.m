@@ -80,6 +80,11 @@ static const unsigned short quadIndices[] = {
     [self.view bringSubviewToFront:testView];
     [self.view bringSubviewToFront:renderView];
     
+    // 确保Metal层在最前面
+    if (_metalLayer) {
+        [self.view.layer bringSublayerToFront:_metalLayer];
+    }
+    
     NSLog(@"Added test view with frame: %@", NSStringFromCGRect(testView.frame));
     
     // 初始化Metal设备
@@ -127,24 +132,28 @@ static const unsigned short quadIndices[] = {
     metalLayer.frame = self.view.bounds;
     metalLayer.device = _metalDevice;
     metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    metalLayer.framebufferOnly = YES;
-    metalLayer.opaque = YES;
+    metalLayer.framebufferOnly = NO; // 允许CPU访问，更容易调试
+    metalLayer.opaque = NO; // 允许透明度，更容易看到
     
     // 确保Metal层可见且在最前面
     metalLayer.opacity = 1.0;
     metalLayer.hidden = NO;
-    metalLayer.zPosition = 1000.0;
+    metalLayer.zPosition = 9999.0; // 确保在最前面
+    
+    // 设置背景色以便调试
+    metalLayer.backgroundColor = [UIColor colorWithRed:0.0 green:0.5 blue:0.0 alpha:0.3].CGColor;
     
     [self.view.layer addSublayer:metalLayer];
     
-    NSLog(@"Metal layer frame: %@, bounds: %@", 
+    NSLog(@"Metal layer frame: %@, bounds: %@, zPosition: %f", 
           NSStringFromCGRect(metalLayer.frame), 
-          NSStringFromCGRect(self.view.bounds));
+          NSStringFromCGRect(self.view.bounds),
+          metalLayer.zPosition);
     
     // 保存Metal层引用
     _metalLayer = metalLayer;
     
-    NSLog(@"Created Metal display layer");
+    NSLog(@"Created Metal display layer with debug background");
 }
 
 - (void)createDisplayLayer {
@@ -281,6 +290,9 @@ static const unsigned short quadIndices[] = {
     _displayLink.preferredFramesPerSecond = 30; // 降低到30 FPS减少闪烁
     [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
     NSLog(@"Created CADisplayLink for Metal display");
+    
+    // 立即测试Metal渲染
+    [self testMetalRendering];
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -490,7 +502,7 @@ static const unsigned short quadIndices[] = {
     MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.2, 0.8, 0.2, 1.0); // 绿色背景，更容易看到
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
     
     // 创建命令缓冲区
@@ -501,26 +513,155 @@ static const unsigned short quadIndices[] = {
     
     // 从IOSurface创建Metal纹理
     MTLTextureDescriptor* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
-                                                                                                  width:IOSurfaceGetWidth(surface)
-                                                                                                 height:IOSurfaceGetHeight(surface)
-                                                                                              mipmapped:NO];
+                                                                                                   width:IOSurfaceGetWidth(surface)
+                                                                                                  height:IOSurfaceGetHeight(surface)
+                                                                                               mipmapped:NO];
     textureDescriptor.usage = MTLTextureUsageShaderRead;
     
     id<MTLTexture> texture = [_metalDevice newTextureWithDescriptor:textureDescriptor
-                                                          iosurface:surface
-                                                              plane:0];
+                                                           iosurface:surface
+                                                               plane:0];
     
     if (texture) {
         NSLog(@"Metal: Successfully created texture from IOSurface: %dx%d", 
               (int)IOSurfaceGetWidth(surface), (int)IOSurfaceGetHeight(surface));
         
-        // 这里可以添加渲染逻辑，将纹理绘制到屏幕上
-        // 为了简化，我们只是创建了纹理
+        // 设置视口
+        [renderEncoder setViewport:(MTLViewport){0.0, 0.0, (double)drawable.texture.width, (double)drawable.texture.height, 0.0, 1.0}];
         
-        // ARC模式下不需要手动释放
-        // [texture release];
+        // 创建一个简单的渲染管道来显示纹理
+        static id<MTLRenderPipelineState> pipelineState = nil;
+        if (!pipelineState) {
+            // 创建简单的顶点着色器
+            NSString* vertexShaderSource = @"#include <metal_stdlib>\n"
+                                          "using namespace metal;\n"
+                                          "struct VertexIn {\n"
+                                          "    float2 position [[attribute(0)]];\n"
+                                          "    float2 texCoord [[attribute(1)]];\n"
+                                          "};\n"
+                                          "struct VertexOut {\n"
+                                          "    float4 position [[position]];\n"
+                                          "    float2 texCoord;\n"
+                                          "};\n"
+                                          "vertex VertexOut vertex_main(VertexIn in [[stage_in]]) {\n"
+                                          "    VertexOut out;\n"
+                                          "    out.position = float4(in.position, 0.0, 1.0);\n"
+                                          "    out.texCoord = in.texCoord;\n"
+                                          "    return out;\n"
+                                          "}\n";
+            
+            // 创建简单的片段着色器
+            NSString* fragmentShaderSource = @"#include <metal_stdlib>\n"
+                                            "using namespace metal;\n"
+                                            "fragment float4 fragment_main(float2 texCoord [[stage_in]],\n"
+                                            "                                   texture2d<float> texture [[texture(0)]]) {\n"
+                                            "    constexpr sampler textureSampler(mag_filter::linear, min_filter::linear);\n"
+                                            "    return texture.sample(textureSampler, texCoord);\n"
+                                            "}\n";
+            
+            NSError* error = nil;
+            id<MTLLibrary> library = [_metalDevice newLibraryWithSource:vertexShaderSource options:nil error:&error];
+            if (!library) {
+                NSLog(@"Metal: Failed to create library: %@", error);
+                [renderEncoder endEncoding];
+                [commandBuffer presentDrawable:drawable];
+                [commandBuffer commit];
+                return;
+            }
+            
+            id<MTLFunction> vertexFunction = [library newFunctionWithName:@"vertex_main"];
+            id<MTLFunction> fragmentFunction = [library newFunctionWithName:@"fragment_main"];
+            
+            MTLRenderPipelineDescriptor* pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+            pipelineDescriptor.vertexFunction = vertexFunction;
+            pipelineDescriptor.fragmentFunction = fragmentFunction;
+            pipelineDescriptor.colorAttachments[0].pixelFormat = drawable.texture.pixelFormat;
+            
+            pipelineState = [_metalDevice newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+            if (!pipelineState) {
+                NSLog(@"Metal: Failed to create pipeline state: %@", error);
+                [renderEncoder endEncoding];
+                [commandBuffer presentDrawable:drawable];
+                [commandBuffer commit];
+                return;
+            }
+        }
+        
+        // 设置渲染管道状态
+        [renderEncoder setRenderPipelineState:pipelineState];
+        
+        // 绑定纹理
+        [renderEncoder setFragmentTexture:texture atIndex:0];
+        
+        // 创建顶点缓冲区（全屏四边形）
+        static id<MTLBuffer> vertexBuffer = nil;
+        if (!vertexBuffer) {
+            float vertices[] = {
+                // 位置 (x, y)    纹理坐标 (u, v)
+                -1.0f, -1.0f,    0.0f, 0.0f,  // 左下
+                 1.0f, -1.0f,    1.0f, 0.0f,  // 右下
+                 1.0f,  1.0f,    1.0f, 1.0f,  // 右上
+                -1.0f,  1.0f,    0.0f, 1.0f   // 左上
+            };
+            vertexBuffer = [_metalDevice newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceStorageModeShared];
+        }
+        
+        // 设置顶点缓冲区
+        [renderEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
+        
+        // 绘制全屏四边形
+        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+        
+        NSLog(@"Metal: Rendered texture to screen");
     } else {
         NSLog(@"Metal: Failed to create texture from IOSurface");
+        
+        // 如果纹理创建失败，至少绘制一个彩色矩形
+        [renderEncoder setViewport:(MTLViewport){0.0, 0.0, (double)drawable.texture.width, (double)drawable.texture.height, 0.0, 1.0}];
+        
+        // 创建一个简单的彩色渲染管道
+        static id<MTLRenderPipelineState> colorPipelineState = nil;
+        if (!colorPipelineState) {
+            NSString* colorShaderSource = @"#include <metal_stdlib>\n"
+                                         "using namespace metal;\n"
+                                         "struct VertexOut {\n"
+                                         "    float4 position [[position]];\n"
+                                         "};\n"
+                                         "vertex VertexOut vertex_main(uint vertexID [[vertex_id]]) {\n"
+                                         "    float2 positions[4] = {\n"
+                                         "        float2(-0.5, -0.5),\n"
+                                         "        float2( 0.5, -0.5),\n"
+                                         "        float2(-0.5,  0.5),\n"
+                                         "        float2( 0.5,  0.5)\n"
+                                         "    };\n"
+                                         "    VertexOut out;\n"
+                                         "    out.position = float4(positions[vertexID], 0.0, 1.0);\n"
+                                         "    return out;\n"
+                                         "}\n"
+                                         "fragment float4 fragment_main() {\n"
+                                         "    return float4(1.0, 0.0, 0.0, 1.0); // 红色\n"
+                                         "}\n";
+            
+            NSError* error = nil;
+            id<MTLLibrary> library = [_metalDevice newLibraryWithSource:colorShaderSource options:nil error:&error];
+            if (library) {
+                id<MTLFunction> vertexFunction = [library newFunctionWithName:@"vertex_main"];
+                id<MTLFunction> fragmentFunction = [library newFunctionWithName:@"fragment_main"];
+                
+                MTLRenderPipelineDescriptor* pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+                pipelineDescriptor.vertexFunction = vertexFunction;
+                pipelineDescriptor.fragmentFunction = fragmentFunction;
+                pipelineDescriptor.colorAttachments[0].pixelFormat = drawable.texture.pixelFormat;
+                
+                colorPipelineState = [_metalDevice newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+            }
+        }
+        
+        if (colorPipelineState) {
+            [renderEncoder setRenderPipelineState:colorPipelineState];
+            [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+            NSLog(@"Metal: Drew fallback red rectangle");
+        }
     }
     
     [renderEncoder endEncoding];
@@ -528,6 +669,95 @@ static const unsigned short quadIndices[] = {
     [commandBuffer commit];
     
     NSLog(@"Metal: Successfully displayed IOSurface with Metal");
+}
+
+- (void)testMetalRendering {
+    NSLog(@"Testing Metal rendering...");
+    
+    if (!_metalLayer || !_metalDevice) {
+        NSLog(@"Metal layer or device not available");
+        return;
+    }
+    
+    // 获取Metal层的可绘制对象
+    id<CAMetalDrawable> drawable = [_metalLayer nextDrawable];
+    if (!drawable) {
+        NSLog(@"Failed to get Metal drawable");
+        return;
+    }
+    
+    // 创建渲染通道描述符
+    MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+    renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
+    renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 0.0, 0.0, 1.0); // 红色背景
+    renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+    
+    // 创建命令缓冲区
+    id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+    
+    // 创建渲染命令编码器
+    id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+    
+    // 设置视口
+    [renderEncoder setViewport:(MTLViewport){0.0, 0.0, (double)drawable.texture.width, (double)drawable.texture.height, 0.0, 1.0}];
+    
+    // 创建一个简单的彩色渲染管道
+    static id<MTLRenderPipelineState> testPipelineState = nil;
+    if (!testPipelineState) {
+        NSString* shaderSource = @"#include <metal_stdlib>\n"
+                                "using namespace metal;\n"
+                                "struct VertexOut {\n"
+                                "    float4 position [[position]];\n"
+                                "};\n"
+                                "vertex VertexOut vertex_main(uint vertexID [[vertex_id]]) {\n"
+                                "    float2 positions[4] = {\n"
+                                "        float2(-0.8, -0.8),\n"
+                                "        float2( 0.8, -0.8),\n"
+                                "        float2(-0.8,  0.8),\n"
+                                "        float2( 0.8,  0.8)\n"
+                                "    };\n"
+                                "    VertexOut out;\n"
+                                "    out.position = float4(positions[vertexID], 0.0, 1.0);\n"
+                                "    return out;\n"
+                                "}\n"
+                                "fragment float4 fragment_main() {\n"
+                                "    return float4(0.0, 1.0, 0.0, 1.0); // 绿色\n"
+                                "}\n";
+        
+        NSError* error = nil;
+        id<MTLLibrary> library = [_metalDevice newLibraryWithSource:shaderSource options:nil error:&error];
+        if (library) {
+            id<MTLFunction> vertexFunction = [library newFunctionWithName:@"vertex_main"];
+            id<MTLFunction> fragmentFunction = [library newFunctionWithName:@"fragment_main"];
+            
+            MTLRenderPipelineDescriptor* pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
+            pipelineDescriptor.vertexFunction = vertexFunction;
+            pipelineDescriptor.fragmentFunction = fragmentFunction;
+            pipelineDescriptor.colorAttachments[0].pixelFormat = drawable.texture.pixelFormat;
+            
+            testPipelineState = [_metalDevice newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+            if (testPipelineState) {
+                NSLog(@"Created test Metal pipeline state");
+            } else {
+                NSLog(@"Failed to create test pipeline state: %@", error);
+            }
+        } else {
+            NSLog(@"Failed to create Metal library: %@", error);
+        }
+    }
+    
+    if (testPipelineState) {
+        [renderEncoder setRenderPipelineState:testPipelineState];
+        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+        NSLog(@"Drew test green rectangle with Metal");
+    }
+    
+    [renderEncoder endEncoding];
+    [commandBuffer presentDrawable:drawable];
+    [commandBuffer commit];
+    
+    NSLog(@"Test Metal rendering completed");
 }
 
 - (void)drawTestPattern {
