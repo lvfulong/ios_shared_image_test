@@ -124,10 +124,10 @@ static const unsigned short quadIndices[] = {
     metalLayer.framebufferOnly = NO; // 允许CPU访问，更容易调试
     metalLayer.opaque = NO; // 允许透明度，更容易看到
     
-    // 确保Metal层可见且在最前面，但允许UIKit视图透过
-    metalLayer.opacity = 0.8; // 稍微透明，让UIKit视图可见
+    // 确保Metal层可见且在最前面
+    metalLayer.opacity = 1.0; // 完全不透明，确保渲染内容可见
     metalLayer.hidden = NO;
-    metalLayer.zPosition = 1000.0; // 在UIKit视图之上，但不是最高
+    metalLayer.zPosition = 9999.0; // 确保在最前面
     
     // 设置背景色为透明
     metalLayer.backgroundColor = [UIColor clearColor].CGColor;
@@ -678,7 +678,7 @@ static const unsigned short quadIndices[] = {
     MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 0.0, 0.0, 1.0); // 红色背景
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0); // 黑色背景
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
     
     // 创建命令缓冲区
@@ -697,20 +697,26 @@ static const unsigned short quadIndices[] = {
                                 "using namespace metal;\n"
                                 "struct VertexOut {\n"
                                 "    float4 position [[position]];\n"
+                                "    float4 color;\n"
                                 "};\n"
                                 "vertex VertexOut vertex_main(uint vertexID [[vertex_id]]) {\n"
-                                "    float2 positions[4] = {\n"
-                                "        float2(-0.8, -0.8),\n"
-                                "        float2( 0.8, -0.8),\n"
-                                "        float2(-0.8,  0.8),\n"
-                                "        float2( 0.8,  0.8)\n"
+                                "    float2 positions[3] = {\n"
+                                "        float2( 0.0,  0.5),  // 顶部\n"
+                                "        float2(-0.5, -0.5),  // 左下\n"
+                                "        float2( 0.5, -0.5)   // 右下\n"
+                                "    };\n"
+                                "    float4 colors[3] = {\n"
+                                "        float4(1.0, 0.0, 0.0, 1.0), // 红色\n"
+                                "        float4(0.0, 1.0, 0.0, 1.0), // 绿色\n"
+                                "        float4(0.0, 0.0, 1.0, 1.0)  // 蓝色\n"
                                 "    };\n"
                                 "    VertexOut out;\n"
                                 "    out.position = float4(positions[vertexID], 0.0, 1.0);\n"
+                                "    out.color = colors[vertexID];\n"
                                 "    return out;\n"
                                 "}\n"
-                                "fragment float4 fragment_main() {\n"
-                                "    return float4(0.0, 1.0, 0.0, 1.0); // 绿色\n"
+                                "fragment float4 fragment_main(VertexOut in [[stage_in]]) {\n"
+                                "    return in.color;\n"
                                 "}\n";
         
         NSError* error = nil;
@@ -737,8 +743,8 @@ static const unsigned short quadIndices[] = {
     
     if (testPipelineState) {
         [renderEncoder setRenderPipelineState:testPipelineState];
-        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
-        NSLog(@"Drew test green rectangle with Metal");
+        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+        NSLog(@"Drew test colored triangle with Metal");
     }
     
     [renderEncoder endEncoding];
@@ -746,6 +752,10 @@ static const unsigned short quadIndices[] = {
     [commandBuffer commit];
     
     NSLog(@"Test Metal rendering completed");
+    
+    // 强制刷新显示
+    [CATransaction flush];
+    NSLog(@"Forced display refresh");
 }
 
 - (void)drawTestPattern {
