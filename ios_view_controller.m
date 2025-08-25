@@ -116,7 +116,7 @@ static const unsigned short quadIndices[] = {
     metalLayer.zPosition = 1000.0; // 在UIKit视图之上，但不是最高
     
     // 设置背景色为明显的颜色，便于调试
-    metalLayer.backgroundColor = [UIColor purpleColor].CGColor;
+    metalLayer.backgroundColor = [UIColor orangeColor].CGColor; // 橙色，更容易区分
     
     [self.view.layer addSublayer:metalLayer];
     
@@ -137,6 +137,10 @@ static const unsigned short quadIndices[] = {
     [self.view addSubview:metalTestView];
     [self.view bringSubviewToFront:metalTestView];
     NSLog(@"Added magenta test view to simulate Metal layer visibility");
+    
+    // 确保Metal层在洋红色测试层之下
+    [self.view.layer insertSublayer:metalLayer below:metalTestView.layer];
+    NSLog(@"Inserted Metal layer below magenta test view");
     
     NSLog(@"Created Metal display layer as overlay");
 }
