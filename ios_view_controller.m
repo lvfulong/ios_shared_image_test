@@ -197,7 +197,9 @@ static const unsigned short quadIndices[] = {
     NSLog(@"Created CADisplayLink for Metal display");
     
         // 立即测试Metal渲染，确保Metal层有内容显示
+    NSLog(@"About to call testMetalRendering");
     [self testMetalRendering];
+    NSLog(@"testMetalRendering completed");
     
     NSLog(@"Complete zero-copy rendering system started successfully");
 }
@@ -345,8 +347,8 @@ static const unsigned short quadIndices[] = {
         
         // 不需要顶点缓冲区，因为我们使用vertex_id
         
-        // 绘制全屏四边形 - 使用TriangleStrip，4个顶点
-        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+        // 绘制全屏四边形 - 使用Triangle，6个顶点
+        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
         
         // 添加调试：绘制一个明显的彩色矩形
         NSLog(@"Metal: Drawing texture with size: %dx%d", (int)IOSurfaceGetWidth(surface), (int)IOSurfaceGetHeight(surface));
