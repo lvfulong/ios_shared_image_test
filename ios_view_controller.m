@@ -487,13 +487,17 @@ static const unsigned short quadIndices[] = {
             MTLRenderPipelineDescriptor* pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
             pipelineDescriptor.vertexFunction = vertexFunction;
             pipelineDescriptor.fragmentFunction = fragmentFunction;
-            pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm; // 使用固定格式
+            pipelineDescriptor.colorAttachments[0].pixelFormat = drawable.texture.pixelFormat; // 使用drawable的像素格式
             
             testPipelineState = [_metalDevice newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
             if (testPipelineState) {
                 NSLog(@"Created test Metal pipeline state successfully");
             } else {
                 NSLog(@"Failed to create test pipeline state: %@", error);
+                NSLog(@"Pipeline descriptor: vertexFunction=%@, fragmentFunction=%@, pixelFormat=%lu", 
+                      vertexFunction ? @"YES" : @"NO", 
+                      fragmentFunction ? @"YES" : @"NO", 
+                      (unsigned long)pipelineDescriptor.colorAttachments[0].pixelFormat);
             }
         } else {
             NSLog(@"Failed to create Metal library: %@", error);
