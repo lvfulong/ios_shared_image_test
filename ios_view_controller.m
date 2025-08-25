@@ -63,7 +63,7 @@ static const unsigned short quadIndices[] = {
         NSLog(@"Metal layer brought to front");
     }
     
-    NSLog(@"Added test view with frame: %@", NSStringFromCGRect(testView.frame));
+    //NSLog(@"Added test view with frame: %@", NSStringFromCGRect(testView.frame));
     
     // 初始化Metal设备
     _metalDevice = MTLCreateSystemDefaultDevice();
