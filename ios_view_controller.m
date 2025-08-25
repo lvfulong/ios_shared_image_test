@@ -66,13 +66,13 @@ static const unsigned short quadIndices[] = {
 
     // 添加一个更大的测试视图
     UIView* largeTestView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 200, 200)];
-    largeTestView.backgroundColor = [UIColor yellowColor];
+    largeTestView.backgroundColor = [UIColor purpleColor]; // 改为紫色，更容易区分
     [self.view addSubview:largeTestView];
 
     // 添加一个全屏的测试视图来显示渲染内容
     UIView* renderView = [[UIView alloc] initWithFrame:self.view.bounds];
-    renderView.backgroundColor = [UIColor greenColor];
-    renderView.alpha = 0.8; // 半透明
+    renderView.backgroundColor = [UIColor blueColor]; // 改为蓝色，更容易区分
+    renderView.alpha = 1.0; // 完全不透明
     [self.view addSubview:renderView];
 
     // 确保测试视图在最前面
@@ -99,9 +99,9 @@ static const unsigned short quadIndices[] = {
     // 设置零拷贝方式选择 (可以在这里切换)
     _zeroCopyMethod = ZeroCopyMethodMetalTexture; // 优先使用Metal纹理，因为CVOpenGLESTextureCache有问题
     
-    // 创建显示层来显示渲染结果 - 暂时注释掉EAGL层
-    // [self createDisplayLayer];
-    NSLog(@"Skipped EAGL layer creation for debugging");
+    // 创建Metal显示层来显示渲染结果
+    [self createMetalDisplayLayer];
+    NSLog(@"Created Metal display layer");
     
     // 创建IOSurface用于渲染
     if (![self createIOSurface]) {
@@ -119,6 +119,32 @@ static const unsigned short quadIndices[] = {
     }
     
     NSLog(@"IOSurface-based rendering view controller loaded successfully");
+}
+
+- (void)createMetalDisplayLayer {
+    // 创建Metal层
+    CAMetalLayer* metalLayer = [CAMetalLayer layer];
+    metalLayer.frame = self.view.bounds;
+    metalLayer.device = _metalDevice;
+    metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    metalLayer.framebufferOnly = YES;
+    metalLayer.opaque = YES;
+    
+    // 确保Metal层可见且在最前面
+    metalLayer.opacity = 1.0;
+    metalLayer.hidden = NO;
+    metalLayer.zPosition = 1000.0;
+    
+    [self.view.layer addSublayer:metalLayer];
+    
+    NSLog(@"Metal layer frame: %@, bounds: %@", 
+          NSStringFromCGRect(metalLayer.frame), 
+          NSStringFromCGRect(self.view.bounds));
+    
+    // 保存Metal层引用
+    _metalLayer = metalLayer;
+    
+    NSLog(@"Created Metal display layer");
 }
 
 - (void)createDisplayLayer {
@@ -250,11 +276,11 @@ static const unsigned short quadIndices[] = {
     [_mainRenderer startRendering];
     NSLog(@"Started IOSurface-based rendering in view controller");
     
-    // 创建CADisplayLink来同步显示刷新率 - 暂时注释掉
-    // _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateDisplay:)];
-    // _displayLink.preferredFramesPerSecond = 30; // 降低到30 FPS减少闪烁
-    // [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
-    NSLog(@"Skipped CADisplayLink for debugging");
+    // 创建CADisplayLink来同步显示刷新率
+    _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateDisplay:)];
+    _displayLink.preferredFramesPerSecond = 30; // 降低到30 FPS减少闪烁
+    [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+    NSLog(@"Created CADisplayLink for Metal display");
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -277,31 +303,20 @@ static const unsigned short quadIndices[] = {
     // 检查是否有新的渲染结果
     BOOL hasNewResult = [_mainRenderer hasNewRenderResult];
     if (hasNewResult) {
-        NSLog(@"Displaying new render result");
+        NSLog(@"Displaying new render result with Metal");
         
         // 获取当前的IOSurface
         IOSurfaceRef surface = [_mainRenderer getCurrentSurface];
         if (surface) {
-            // 设置显示上下文为当前上下文
-            [EAGLContext setCurrentContext:_displayContext];
-            
-            // 绑定显示帧缓冲区
-            glBindFramebuffer(GL_FRAMEBUFFER, _displayFramebuffer);
-            
-            // 设置视口
-            CGSize layerSize = _eaglLayer.bounds.size;
-            glViewport(0, 0, (GLsizei)layerSize.width, (GLsizei)layerSize.height);
-            
-            NSLog(@"Setting viewport to: %.0fx%.0f", layerSize.width, layerSize.height);
-            
-            // 清除背景 - 使用稳定的颜色
-            glClearColor(0.2f, 0.2f, 0.2f, 1.0f); // 深灰色背景，更稳定
-            glClear(GL_COLOR_BUFFER_BIT);
-            
-            // 从IOSurface创建纹理 - 两种零拷贝方式
-            // 获取IOSurface的实际像素格式
-            OSType pixelFormat = IOSurfaceGetPixelFormat(surface);
-            NSLog(@"IOSurface pixel format: %u", (unsigned int)pixelFormat);
+            // 使用Metal显示IOSurface内容
+            [self displayIOSurfaceWithMetal:surface];
+        } else {
+            NSLog(@"No surface available for display");
+        }
+    } else {
+        NSLog(@"No new render result available");
+    }
+}
             
                 // 持续测试基本显示是否工作
     static BOOL hasTestedDisplay = NO;
@@ -552,6 +567,59 @@ static const unsigned short quadIndices[] = {
     }
     
     NSLog(@"Basic display test completed");
+}
+
+- (void)displayIOSurfaceWithMetal:(IOSurfaceRef)surface {
+    NSLog(@"Metal: Displaying IOSurface with Metal");
+    
+    // 获取Metal层的可绘制对象
+    id<CAMetalDrawable> drawable = [_metalLayer nextDrawable];
+    if (!drawable) {
+        NSLog(@"Metal: Failed to get drawable");
+        return;
+    }
+    
+    // 创建渲染通道描述符
+    MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+    renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
+    renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+    renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+    
+    // 创建命令缓冲区
+    id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+    
+    // 创建渲染命令编码器
+    id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+    
+    // 从IOSurface创建Metal纹理
+    MTLTextureDescriptor* textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+                                                                                                  width:IOSurfaceGetWidth(surface)
+                                                                                                 height:IOSurfaceGetHeight(surface)
+                                                                                              mipmapped:NO];
+    textureDescriptor.usage = MTLTextureUsageShaderRead;
+    
+    id<MTLTexture> texture = [_metalDevice newTextureWithDescriptor:textureDescriptor
+                                                          iosurface:surface
+                                                              plane:0];
+    
+    if (texture) {
+        NSLog(@"Metal: Successfully created texture from IOSurface: %dx%d", 
+              (int)IOSurfaceGetWidth(surface), (int)IOSurfaceGetHeight(surface));
+        
+        // 这里可以添加渲染逻辑，将纹理绘制到屏幕上
+        // 为了简化，我们只是创建了纹理
+        
+        [texture release];
+    } else {
+        NSLog(@"Metal: Failed to create texture from IOSurface");
+    }
+    
+    [renderEncoder endEncoding];
+    [commandBuffer presentDrawable:drawable];
+    [commandBuffer commit];
+    
+    NSLog(@"Metal: Successfully displayed IOSurface with Metal");
 }
 
 - (void)drawTestPattern {

@@ -18,9 +18,12 @@
 @property (nonatomic, strong) IOSMainRenderer* mainRenderer;
 @property (nonatomic, strong) CADisplayLink* displayLink;
 
-// OpenGL ES 显示相关
-@property (nonatomic, strong) EAGLContext* displayContext;
-@property (nonatomic, strong) CAEAGLLayer* eaglLayer;
+       // Metal 显示相关
+       @property (nonatomic, strong) CAMetalLayer* metalLayer;
+       
+       // OpenGL ES 显示相关
+       @property (nonatomic, strong) EAGLContext* displayContext;
+       @property (nonatomic, strong) CAEAGLLayer* eaglLayer;
 @property (nonatomic, assign) GLuint displayFramebuffer;
 @property (nonatomic, assign) GLuint displayRenderbuffer;
 @property (nonatomic, assign) CVOpenGLESTextureCacheRef displayTextureCache;
