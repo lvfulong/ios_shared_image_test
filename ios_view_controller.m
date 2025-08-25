@@ -317,7 +317,6 @@ static const unsigned short quadIndices[] = {
         NSLog(@"No new render result available");
     }
 }
-}
 
 - (BOOL)initializeDisplayShaders {
     // 编译顶点着色器
