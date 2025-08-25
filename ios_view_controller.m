@@ -502,7 +502,7 @@ static const unsigned short quadIndices[] = {
     MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0); // 黑色背景，让渲染内容更明显
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.2, 0.2, 0.2, 1.0); // 深灰色背景，让渲染内容更明显
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
     
     // 创建命令缓冲区
@@ -606,7 +606,13 @@ static const unsigned short quadIndices[] = {
         // 绘制全屏四边形 - 使用TriangleStrip，4个顶点
         [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
         
+        // 添加调试：绘制一个明显的彩色矩形
+        NSLog(@"Metal: Drawing texture with size: %dx%d", (int)IOSurfaceGetWidth(surface), (int)IOSurfaceGetHeight(surface));
+        
         NSLog(@"Metal: Rendered texture to screen");
+        
+        // 强制刷新显示
+        [CATransaction flush];
     } else {
         NSLog(@"Metal: Failed to create texture from IOSurface");
         
