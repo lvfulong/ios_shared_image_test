@@ -51,7 +51,13 @@ static const unsigned short quadIndices[] = {
     [super viewDidLoad];
     
     // 设置视图背景色为明显的颜色
-    self.view.backgroundColor = [UIColor blueColor]; // 蓝色背景，容易看到
+    self.view.backgroundColor = [UIColor redColor]; // 红色背景，非常明显
+    
+    // 添加一个全屏的测试视图
+    UIView* fullscreenView = [[UIView alloc] initWithFrame:self.view.bounds];
+    fullscreenView.backgroundColor = [UIColor orangeColor];
+    [self.view addSubview:fullscreenView];
+    NSLog(@"Added fullscreen orange view");
     
         // 添加一个简单的UIView来测试视图是否可见
     UIView* testView = [[UIView alloc] initWithFrame:CGRectMake(50, 50, 100, 100)];
@@ -93,8 +99,9 @@ static const unsigned short quadIndices[] = {
     // 设置零拷贝方式选择 (可以在这里切换)
     _zeroCopyMethod = ZeroCopyMethodMetalTexture; // 优先使用Metal纹理，因为CVOpenGLESTextureCache有问题
     
-    // 创建显示层来显示渲染结果
-    [self createDisplayLayer];
+    // 创建显示层来显示渲染结果 - 暂时注释掉EAGL层
+    // [self createDisplayLayer];
+    NSLog(@"Skipped EAGL layer creation for debugging");
     
     // 创建IOSurface用于渲染
     if (![self createIOSurface]) {
@@ -243,10 +250,11 @@ static const unsigned short quadIndices[] = {
     [_mainRenderer startRendering];
     NSLog(@"Started IOSurface-based rendering in view controller");
     
-    // 创建CADisplayLink来同步显示刷新率
-    _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateDisplay:)];
-    _displayLink.preferredFramesPerSecond = 30; // 降低到30 FPS减少闪烁
-    [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+    // 创建CADisplayLink来同步显示刷新率 - 暂时注释掉
+    // _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(updateDisplay:)];
+    // _displayLink.preferredFramesPerSecond = 30; // 降低到30 FPS减少闪烁
+    // [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+    NSLog(@"Skipped CADisplayLink for debugging");
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
