@@ -511,7 +511,7 @@ static const unsigned short quadIndices[] = {
     
     if (testPipelineState) {
         [renderEncoder setRenderPipelineState:testPipelineState];
-        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
+        [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
         NSLog(@"Drew test RED FULLSCREEN with Metal");
     }
     
