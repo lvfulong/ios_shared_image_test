@@ -283,8 +283,8 @@ static const unsigned short quadIndices[] = {
     [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
     NSLog(@"Created CADisplayLink for Metal display");
     
-    // 立即测试Metal渲染
-    [self testMetalRendering];
+    // 暂时禁用Metal测试渲染，确保UIKit视图可见
+    // [self testMetalRendering];
     
     NSLog(@"Complete zero-copy rendering system started successfully");
 }
