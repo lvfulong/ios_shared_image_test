@@ -50,8 +50,15 @@ static const unsigned short quadIndices[] = {
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    // 设置视图背景色
-    self.view.backgroundColor = [UIColor blackColor];
+    // 设置视图背景色为明显的颜色
+    self.view.backgroundColor = [UIColor blueColor]; // 蓝色背景，容易看到
+    
+    // 添加一个简单的UIView来测试视图是否可见
+    UIView* testView = [[UIView alloc] initWithFrame:CGRectMake(50, 50, 100, 100)];
+    testView.backgroundColor = [UIColor redColor];
+    [self.view addSubview:testView];
+    
+    NSLog(@"Added test view with frame: %@", NSStringFromCGRect(testView.frame));
     
     // 初始化Metal设备
     _metalDevice = MTLCreateSystemDefaultDevice();
@@ -107,6 +114,14 @@ static const unsigned short quadIndices[] = {
         kEAGLDrawablePropertyColorFormat: kEAGLColorFormatRGBA8
     };
     [self.view.layer addSublayer:eaglLayer];
+    
+    // 确保EAGL层可见
+    eaglLayer.opacity = 1.0;
+    eaglLayer.hidden = NO;
+    
+    NSLog(@"EAGL layer frame: %@, bounds: %@", 
+          NSStringFromCGRect(eaglLayer.frame), 
+          NSStringFromCGRect(self.view.bounds));
     
     // 设置当前上下文
     if (![EAGLContext setCurrentContext:displayContext]) {
@@ -234,7 +249,10 @@ static const unsigned short quadIndices[] = {
             glBindFramebuffer(GL_FRAMEBUFFER, _displayFramebuffer);
             
             // 设置视口
-            glViewport(0, 0, (GLsizei)_eaglLayer.bounds.size.width, (GLsizei)_eaglLayer.bounds.size.height);
+            CGSize layerSize = _eaglLayer.bounds.size;
+            glViewport(0, 0, (GLsizei)layerSize.width, (GLsizei)layerSize.height);
+            
+            NSLog(@"Setting viewport to: %.0fx%.0f", layerSize.width, layerSize.height);
             
             // 清除背景 - 使用明显的颜色来测试显示
             glClearColor(0.0f, 1.0f, 0.0f, 1.0f); // 绿色背景
