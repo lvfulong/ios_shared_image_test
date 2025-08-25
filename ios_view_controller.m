@@ -50,35 +50,10 @@ static const unsigned short quadIndices[] = {
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    // 设置视图背景色为明显的颜色
-    self.view.backgroundColor = [UIColor redColor]; // 红色背景，非常明显
+    // 设置视图背景色为黑色，让渲染内容更明显
+    self.view.backgroundColor = [UIColor blackColor];
     
-    // 添加一个全屏的测试视图
-    UIView* fullscreenView = [[UIView alloc] initWithFrame:self.view.bounds];
-    fullscreenView.backgroundColor = [UIColor orangeColor];
-    [self.view addSubview:fullscreenView];
-    NSLog(@"Added fullscreen orange view");
-    
-        // 添加一个简单的UIView来测试视图是否可见
-    UIView* testView = [[UIView alloc] initWithFrame:CGRectMake(50, 50, 100, 100)];
-    testView.backgroundColor = [UIColor redColor];
-    [self.view addSubview:testView];
-
-    // 添加一个更大的测试视图
-    UIView* largeTestView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 200, 200)];
-    largeTestView.backgroundColor = [UIColor purpleColor]; // 改为紫色，更容易区分
-    [self.view addSubview:largeTestView];
-
-    // 添加一个全屏的测试视图来显示渲染内容
-    UIView* renderView = [[UIView alloc] initWithFrame:self.view.bounds];
-    renderView.backgroundColor = [UIColor blueColor]; // 改为蓝色，更容易区分
-    renderView.alpha = 1.0; // 完全不透明
-    [self.view addSubview:renderView];
-
-    // 确保测试视图在最前面
-    [self.view bringSubviewToFront:largeTestView];
-    [self.view bringSubviewToFront:testView];
-    [self.view bringSubviewToFront:renderView];
+    // 移除调试视图，只保留Metal层来显示渲染内容
     
     // 确保Metal层在最前面
     if (_metalLayer) {
@@ -143,8 +118,8 @@ static const unsigned short quadIndices[] = {
     metalLayer.hidden = NO;
     metalLayer.zPosition = 9999.0; // 确保在最前面
     
-    // 设置背景色以便调试
-    metalLayer.backgroundColor = [UIColor colorWithRed:0.0 green:0.5 blue:0.0 alpha:0.3].CGColor;
+    // 移除调试背景色，让渲染内容更清晰
+    metalLayer.backgroundColor = [UIColor clearColor].CGColor;
     
     [self.view.layer addSublayer:metalLayer];
     
@@ -505,7 +480,7 @@ static const unsigned short quadIndices[] = {
     MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     renderPassDescriptor.colorAttachments[0].texture = drawable.texture;
     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.2, 0.8, 0.2, 1.0); // 绿色背景，更容易看到
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0); // 黑色背景，让渲染内容更明显
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
     
     // 创建命令缓冲区
