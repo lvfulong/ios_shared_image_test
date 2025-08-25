@@ -97,8 +97,7 @@ static const float triangleVertices[] = {
         (NSString*)kIOSurfaceBytesPerRow: @(_renderWidth * 4),
         (NSString*)kIOSurfacePixelFormat: @(1111970369), // 使用kCVPixelFormatType_32RGBA，确保与OpenGL ES兼容
         (NSString*)kIOSurfaceIsGlobal: @YES, // 允许跨进程共享
-        (NSString*)kIOSurfaceAllocSize: @(_renderWidth * _renderHeight * 4), // 明确指定分配大小
-        (NSString*)kIOSurfaceAlignment: @64 // 64字节对齐，提高兼容性
+        (NSString*)kIOSurfaceAllocSize: @(_renderWidth * _renderHeight * 4) // 明确指定分配大小
     };
     
     // 创建IOSurface
