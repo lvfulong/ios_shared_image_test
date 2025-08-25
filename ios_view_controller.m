@@ -535,21 +535,29 @@ static const unsigned short quadIndices[] = {
         // 创建一个简单的渲染管道来显示纹理
         static id<MTLRenderPipelineState> pipelineState = nil;
         if (!pipelineState) {
-            // 创建简单的顶点着色器
+            // 创建简单的顶点着色器 - 使用vertex_id而不是stage_in
             NSString* vertexShaderSource = @"#include <metal_stdlib>\n"
                                           "using namespace metal;\n"
-                                          "struct VertexIn {\n"
-                                          "    float2 position [[attribute(0)]];\n"
-                                          "    float2 texCoord [[attribute(1)]];\n"
-                                          "};\n"
                                           "struct VertexOut {\n"
                                           "    float4 position [[position]];\n"
                                           "    float2 texCoord;\n"
                                           "};\n"
-                                          "vertex VertexOut vertex_main(VertexIn in [[stage_in]]) {\n"
+                                          "vertex VertexOut vertex_main(uint vertexID [[vertex_id]]) {\n"
+                                          "    float2 positions[4] = {\n"
+                                          "        float2(-1.0, -1.0),\n"
+                                          "        float2( 1.0, -1.0),\n"
+                                          "        float2(-1.0,  1.0),\n"
+                                          "        float2( 1.0,  1.0)\n"
+                                          "    };\n"
+                                          "    float2 texCoords[4] = {\n"
+                                          "        float2(0.0, 0.0),\n"
+                                          "        float2(1.0, 0.0),\n"
+                                          "        float2(0.0, 1.0),\n"
+                                          "        float2(1.0, 1.0)\n"
+                                          "    };\n"
                                           "    VertexOut out;\n"
-                                          "    out.position = float4(in.position, 0.0, 1.0);\n"
-                                          "    out.texCoord = in.texCoord;\n"
+                                          "    out.position = float4(positions[vertexID], 0.0, 1.0);\n"
+                                          "    out.texCoord = texCoords[vertexID];\n"
                                           "    return out;\n"
                                           "}\n";
             
@@ -596,23 +604,9 @@ static const unsigned short quadIndices[] = {
         // 绑定纹理
         [renderEncoder setFragmentTexture:texture atIndex:0];
         
-        // 创建顶点缓冲区（全屏四边形）
-        static id<MTLBuffer> vertexBuffer = nil;
-        if (!vertexBuffer) {
-            float vertices[] = {
-                // 位置 (x, y)    纹理坐标 (u, v)
-                -1.0f, -1.0f,    0.0f, 0.0f,  // 左下
-                 1.0f, -1.0f,    1.0f, 0.0f,  // 右下
-                 1.0f,  1.0f,    1.0f, 1.0f,  // 右上
-                -1.0f,  1.0f,    0.0f, 1.0f   // 左上
-            };
-            vertexBuffer = [_metalDevice newBufferWithBytes:vertices length:sizeof(vertices) options:MTLResourceStorageModeShared];
-        }
+        // 不需要顶点缓冲区，因为我们使用vertex_id
         
-        // 设置顶点缓冲区
-        [renderEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
-        
-        // 绘制全屏四边形
+        // 绘制全屏四边形 - 使用TriangleStrip，4个顶点
         [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip vertexStart:0 vertexCount:4];
         
         NSLog(@"Metal: Rendered texture to screen");
