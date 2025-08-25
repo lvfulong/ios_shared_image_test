@@ -50,29 +50,15 @@ static const unsigned short quadIndices[] = {
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    // 设置视图背景色为明显的颜色
-    self.view.backgroundColor = [UIColor redColor];
-    NSLog(@"Set view background to red");
+    // 简化UIKit视图设置，只保留白色背景
+    self.view.backgroundColor = [UIColor whiteColor];
+    NSLog(@"Set view background to white");
     
     // 添加一个简单的测试视图
     UIView* testView = [[UIView alloc] initWithFrame:CGRectMake(50, 50, 200, 200)];
-    testView.backgroundColor = [UIColor blueColor];
+    testView.backgroundColor = [UIColor redColor];
     [self.view addSubview:testView];
-    NSLog(@"Added blue test view at (50,50) 200x200");
-    
-    // 添加一个全屏的测试视图
-    UIView* fullscreenView = [[UIView alloc] initWithFrame:self.view.bounds];
-    fullscreenView.backgroundColor = [UIColor greenColor];
-    fullscreenView.alpha = 0.5; // 半透明
-    [self.view addSubview:fullscreenView];
-    NSLog(@"Added semi-transparent green fullscreen view");
-    
-    // 添加一个小的红色视图在最前面
-    UIView* frontView = [[UIView alloc] initWithFrame:CGRectMake(100, 100, 100, 100)];
-    frontView.backgroundColor = [UIColor yellowColor];
-    [self.view addSubview:frontView];
-    [self.view bringSubviewToFront:frontView];
-    NSLog(@"Added yellow front view at (100,100) 100x100");
+    NSLog(@"Added red test view at (50,50) 200x200");
     
     NSLog(@"View hierarchy setup completed");
     
@@ -145,12 +131,12 @@ static const unsigned short quadIndices[] = {
     
     // 添加一个测试视图来模拟Metal层的位置和可见性
     UIView* metalTestView = [[UIView alloc] initWithFrame:self.view.bounds];
-    metalTestView.backgroundColor = [UIColor purpleColor];
-    metalTestView.alpha = 0.7;
+    metalTestView.backgroundColor = [UIColor magentaColor]; // 使用更鲜艳的颜色
+    metalTestView.alpha = 1.0; // 完全不透明
     metalTestView.tag = 999; // 用于标识
     [self.view addSubview:metalTestView];
     [self.view bringSubviewToFront:metalTestView];
-    NSLog(@"Added purple test view to simulate Metal layer visibility");
+    NSLog(@"Added magenta test view to simulate Metal layer visibility");
     
     NSLog(@"Created Metal display layer as overlay");
 }
