@@ -308,14 +308,23 @@ static const unsigned short quadIndices[] = {
                                           "    return out;\n"
                                           "}\n";
             
-            // 创建简单的片段着色器 - 显示彩色图案来测试
+            // 创建简单的片段着色器 - 显示明显的彩色图案来测试
             NSString* fragmentShaderSource = @"#include <metal_stdlib>\n"
                                             "using namespace metal;\n"
                                             "fragment float4 fragment_main(float2 texCoord [[stage_in]],\n"
                                             "                                   texture2d<float> texture [[texture(0)]]) {\n"
-                                            "    // 显示彩色图案来测试Metal渲染\n"
+                                            "    // 显示明显的彩色图案来测试Metal渲染\n"
                                             "    float2 uv = texCoord;\n"
-                                            "    float3 color = float3(uv.x, uv.y, 0.5);\n"
+                                            "    float3 color = float3(1.0, 0.0, 0.0); // 纯红色\n"
+                                            "    if (uv.x < 0.5 && uv.y < 0.5) {\n"
+                                            "        color = float3(0.0, 1.0, 0.0); // 绿色\n"
+                                            "    } else if (uv.x >= 0.5 && uv.y < 0.5) {\n"
+                                            "        color = float3(0.0, 0.0, 1.0); // 蓝色\n"
+                                            "    } else if (uv.x < 0.5 && uv.y >= 0.5) {\n"
+                                            "        color = float3(1.0, 1.0, 0.0); // 黄色\n"
+                                            "    } else {\n"
+                                            "        color = float3(1.0, 0.0, 1.0); // 洋红色\n"
+                                            "    }\n"
                                             "    return float4(color, 1.0);\n"
                                             "}\n";
             
@@ -344,8 +353,8 @@ static const unsigned short quadIndices[] = {
         // 设置渲染管道状态
         [renderEncoder setRenderPipelineState:pipelineState];
         
-        // 绑定纹理
-        [renderEncoder setFragmentTexture:texture atIndex:0];
+        // 暂时不绑定纹理，直接显示纯色
+        // [renderEncoder setFragmentTexture:texture atIndex:0];
         
         // 不需要顶点缓冲区，因为我们使用vertex_id
         
